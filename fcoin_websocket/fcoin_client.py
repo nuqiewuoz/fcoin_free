@@ -29,7 +29,7 @@ class fcoin_client():
 	def _subscribe(self, channel):
 		req = {
 				'cmd': 'sub', 
-				'args': [channel], 
+				'args': channel, 
 				'id': '1'}
 		self.send(json.dumps(req))
 
@@ -41,6 +41,12 @@ class fcoin_client():
 		channel = 'ticker.%(symbol)s' % {'symbol': symbol}
 		self.ticker_handler = ticker_handler
 		self._subscribe(channel)
+	
+	def subscribe_tickers(self, symbols, ticker_handler = None):
+		channel = list(map(lambda symbol: "ticker."+symbol, symbols))
+		self.ticker_handler = ticker_handler
+		self._subscribe(channel)
+
 
 	def subscribe_candle(self, symbol, resolution):
 		channel = 'candle.%(resolution)s.%(symbol)s' % {'symbol': symbol, 'resolution': resolution}

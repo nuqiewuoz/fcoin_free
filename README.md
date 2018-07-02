@@ -1,10 +1,6 @@
-# Fcoin对刷机器人
+# Fcoin交易机器人
 
-## 讨论群
-
-提供免费版和付费版，交流群
-
-<img src="./barcode.png" align=center />
+forked from (https://github.com/ZionChang/fcoin_free/)
 
 ## 策略以及风险
 1. 先买后卖
@@ -18,7 +14,7 @@
 
 ## 环境
 
-1. sublime编辑器 (https://www.sublimetext.com/)
+1. VSCode编辑器
 2. 安装python3
 https://www.liaoxuefeng.com/wiki/0014316089557264a6b348958f449949df42a6d3a2e542c000/0014316090478912dab2a3a9e8f4ed49d28854b292f85bb000
 3. 打开cmd
@@ -51,7 +47,6 @@ https://www.liaoxuefeng.com/wiki/0014316089557264a6b348958f449949df42a6d3a2e542c
 windows搜索cmd，mac搜索terminal
 
 
-
 一 对刷
 
 1. 搜索cmd（终端）并且打开 回车
@@ -69,10 +64,3 @@ windows搜索cmd，mac搜索terminal
 1. 搜索cmd（终端）并且打开
 2. 执行`cd`空格然后拖拽fcoin这个文件夹到cmd里面 回车
 3. mac `python3 fees.py` windows: `python fees.py`
-
-
-## 打赏
-如果你觉得使用不错
-
-* BTC: 3AdbaFQpUWcuQHzQmboC9MzGdL3MesP5GS
-* ETH: 0xe17679962f4dc3e4f7f71075f421a0e6897a4b78

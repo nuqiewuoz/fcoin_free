@@ -8,7 +8,8 @@ from fcoin import Fcoin
 from fcoin_websocket.fcoin_client import fcoin_client
 from auth import api_key, api_secret
 from config import symbols, second, amount, price_difference, is_direct_buy
-import os, time, base64
+import os, time
+import math
 
 symbol = symbols[0] + symbols[1]
 
@@ -19,7 +20,8 @@ class Robot(object):
 
 	# 截取指定小数位数
 	def trunc(self, f, n):
-		return round(f, n)
+		# return round(f, n)
+		return math.floor(f*10**n)/10**n
 
 	def ticker_handler(self, message):
 		if 'ticker' in message:
@@ -76,12 +78,14 @@ class Robot(object):
 
 	def strategy(self, symbol, order_price, amount):
 		print('使用单边震荡策略')
-		buy_id = self.buy_action(symbol, order_price, amount)
-		sell_id = self.sell_action(symbol, order_price, amount)
+		buy_price = self.trunc(order_price-price_difference/4, self.price_decimal)
+		sell_price = self.trunc(order_price+price_difference/4, self.price_decimal)
+		buy_id = self.buy_action(symbol, buy_price, amount)
+		sell_id = self.sell_action(symbol, sell_price, amount)
 
 	def trade(self):
 		time.sleep(second)
-		print(bytes.decode(base64.b64decode(b'6LSt5Lmw6K+36K6k5YeG5b6u5L+h5Y+3YXJjaGVyemhz77yM5LiN6KaB55u45L+h5YW25LuW55qE5p2l5rqQ')))
+		# print(bytes.decode(base64.b64decode(b'6LSt5Lmw6K+36K6k5YeG5b6u5L+h5Y+3YXJjaGVyemhz77yM5LiN6KaB55u45L+h5YW25LuW55qE5p2l5rqQ')))
 		ticker = self.ticker
 		newest_price = ticker[0]
 		high_bids = ticker[2]

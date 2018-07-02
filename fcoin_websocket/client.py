@@ -23,7 +23,7 @@ class client(Thread):
 		self._is_connected = False
 
 	def _connect(self):
-		websocket.enableTrace(True)
+		# websocket.enableTrace(True)
 		self._ws = websocket.WebSocketApp(url = self._url,
 									on_open = self.on_open,
 									on_message = self.on_message,

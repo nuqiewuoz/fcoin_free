@@ -18,7 +18,7 @@ symbol_1_fees = 0
 
 count = 1
 
-fees = 0
+# fees = 0
 buy_count = 0
 sell_count = 0
 
