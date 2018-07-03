@@ -33,17 +33,18 @@ def total_balance_as_token(symbol, balances):
     total = 0
     for balance in balances:
         balance_symbol = balance['currency']
+        this_balance = float(balance["balance"])
         if balance_symbol == symbol:
-            total += float(balance['balance'])
+            total += this_balance
         else:
             for info in symbols_info:
                 if info['quote_currency'] == symbol and info['base_currency'] == balance_symbol:
                     price = fcoin.get_market_price(info['name'])
-                    total += float(balance['balance']) * price
+                    total += this_balance * price
                     break
                 if info['quote_currency'] == balance_symbol and info['base_currency'] == symbol:
                     price = fcoin.get_market_price(info['name'])
-                    total += float(balance['balance']) / price
+                    total += this_balance / price
                     break
             else:
                 print("not found symbols for {} and {}".format(
@@ -67,35 +68,38 @@ def total_balance():
     ft = "ft"
     for balance in balances:
         balance_symbol = balance['currency']
+        this_balance = float(balance["balance"])
+        if this_balance == 0:
+            continue
         if balance_symbol == usdt:
-            totalusdt += float(balance['balance'])
+            totalusdt += this_balance
         elif balance_symbol == eth:
-            totaleth += float(balance['balance'])
+            totaleth += this_balance
         else:
             for info in symbols_info:
                 if info['quote_currency'] == usdt and info['base_currency'] == balance_symbol:
                     price = fcoin.get_market_price(info['name'])
-                    totalusdt += float(balance['balance']) * price
+                    totalusdt += this_balance * price
                     break
                 if info['quote_currency'] == balance_symbol and info['base_currency'] == usdt:
                     price = fcoin.get_market_price(info['name'])
-                    totalusdt += float(balance['balance']) / price
+                    totalusdt += this_balance / price
                     break
                 if info['quote_currency'] == eth and info['base_currency'] == balance_symbol:
                     price = fcoin.get_market_price(info['name'])
-                    totaleth += float(balance['balance']) * price
+                    totaleth += this_balance * price
                     break
                 if info['quote_currency'] == balance_symbol and info['base_currency'] == eth:
                     price = fcoin.get_market_price(info['name'])
-                    totaleth += float(balance['balance']) / price
+                    totaleth += this_balance / price
                     break
                 if info['quote_currency'] == ft and info['base_currency'] == balance_symbol:
                     price = fcoin.get_market_price(info['name'])
-                    totalft += float(balance['balance']) * price
+                    totalft += this_balance * price
                     break
                 if info['quote_currency'] == balance_symbol and info['base_currency'] == ft:
                     price = fcoin.get_market_price(info['name'])
-                    totalft += float(balance['balance']) / price
+                    totalft += this_balance / price
                     break
             else:
                 print("invalid symbol {}".format(balance_symbol))
@@ -125,4 +129,4 @@ def balance(all=False):
 # 守护进程
 if __name__ == '__main__':
     # logging.basicConfig(level=logging.DEBUG)
-    balance()
+    balance(True)
