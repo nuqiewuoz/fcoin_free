@@ -41,22 +41,34 @@ def lossonbook(symbols):
 def calculate(fn = filename1):
     profits1 = []
     profits2 = []
+    bidnum = 0
+    totalprofit = 0
     with open(fn) as f:
         lines = f.readlines()
         for line in lines:
+            bidpattern = re.compile(r"^.*每单金额(.+)eth.*$")
             pattern1 = re.compile(r"^.*套利值为(.+)‰$")
             pattern2 = re.compile(r"^.*套利值比为(.+)‰$")
             m1 = pattern1.match(line)
             m2 = pattern2.match(line)
+            bidm = bidpattern.match(line)
+            if bidm:
+                bidnum = float(bidm.group(1))
             if m1:
                 profits1.append(float(m1.group(1)))
+                totalprofit += bidnum * profits1[-1]
             if m2:
                 profits2.append(float(m2.group(1)))
-    total1 = sum(profits1)/10
-    total2 = sum(profits2)/10
-    print("总计获利{}%".format(total1+total2))
-    print("方式一获利次数{} 总获利{}%".format(len(profits1), total1))
-    print("方式二获利次数{} 总获利{}%".format(len(profits2), total2))
+                totalprofit += bidnum * profits2[-1]
+    total1 = sum(profits1)/1000
+    total2 = sum(profits2)/1000
+    totalprofit = totalprofit/1000
+    print("总计获利{:.2%}".format(total1+total2))
+    print("方式一交易次数{} 总获利{:.2%}".format(len(profits1), total1))
+    print("方式二交易次数{} 总获利{:.2%}".format(len(profits2), total2))
+    print("总计交易{}次 平均每次获利{:.2%}".format(len(profits1)+len(profits2),
+                                        (total1+total2)/(len(profits1)+len(profits2))))
+    print("预计总收益为{}eth".format(totalprofit))
 
 
 if __name__ == '__main__':
