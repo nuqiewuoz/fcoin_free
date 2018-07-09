@@ -13,6 +13,7 @@ import base64
 import json
 from websocket import create_connection
 from enum import Enum, unique
+import logging
 
 @unique
 class StatusErrorCode(Enum):
@@ -100,7 +101,7 @@ class Fcoin():
             time.sleep(self.time)
             return self.signed_request(method, api_url, **payload)
         if r.status_code == 200:
-            self.handler_error_if_needed(r.json())
+            # self.handler_error_if_needed(r.json())
             return r.json()
         else:
             if 'json' in r: 
@@ -108,6 +109,7 @@ class Fcoin():
                 self.handler_error_if_needed(r.json())
             else:
                 print(r, r.text, r.status_code)
+                self.handler_error_if_needed(json.loads(r.text))
             print('reconnect...')
             time.sleep(self.time)
             return self.signed_request(method, api_url, **payload)

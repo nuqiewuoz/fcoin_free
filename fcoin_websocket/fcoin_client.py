@@ -9,11 +9,13 @@ import json
 
 class fcoin_client():
 	"""docstring for fcoin_client"""
-	def __init__(self):
+	def __init__(self, on_close=None):
 		self._client = client(
 			url = 'wss://api.fcoin.com/v2/ws',
 			on_message = self._on_message,
+			on_close = self._on_close,
 		)
+		self.close_handler = on_close
 
 	def start(self):
 		self._client.start()
@@ -63,6 +65,11 @@ class fcoin_client():
 			return
 		if self.ticker_handler:
 			self.ticker_handler(data)
+	
+	def _on_close(self, ws):
+		if self.close_handler:
+			self.close_handler()
+
 
 
 

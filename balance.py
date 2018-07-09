@@ -129,4 +129,4 @@ def balance(all=False):
 # 守护进程
 if __name__ == '__main__':
     # logging.basicConfig(level=logging.DEBUG)
-    balance(True)
+    balance(False)
