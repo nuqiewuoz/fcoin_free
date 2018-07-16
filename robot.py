@@ -16,6 +16,9 @@ import logging
 symbol = symbols[0] + symbols[1]
 logfile = "robot.log"
 
+is_using_gap = True
+is_mutable_gap = True
+
 is_mutable_amount = False
 miniamount = 0.01
 maxamount = 0.02
@@ -66,7 +69,7 @@ class Robot(object):
 
 	# 买操作
 	def buy_action(self, this_symbol, this_price, this_amount, should_repeat = 0):
-		ticker = self.ticker
+		# ticker = self.ticker
 		# print('准备买入', this_price, ticker)
 		buy_result = self.fcoin.buy(this_symbol, self.trunc(this_price, self.price_decimal), this_amount)
 		# print('buy_result is', buy_result)
@@ -77,7 +80,7 @@ class Robot(object):
 
 	# 卖操作
 	def sell_action(self, this_symbol, this_price, this_amount):
-		ticker = self.ticker
+		# ticker = self.ticker
 		# print('准备卖出', this_price, ticker)
 		if is_direct_buy == 1:
 			sell_result = self.fcoin.sell(this_symbol, self.trunc(this_price * (1 - 0.0002), self.price_decimal), this_amount)
@@ -90,9 +93,8 @@ class Robot(object):
 		return sell_order_id
 
 
-	def strategy(self, symbol, order_price, amount):
+	def strategy(self, symbol, order_price, amount, gap):
 		# print('使用单边震荡策略')
-		gap = price_difference/4
 		buy_price = self.trunc(order_price-gap, self.price_decimal)
 		sell_price = self.trunc(order_price+gap, self.price_decimal)
 		buy_id = self.buy_action(symbol, buy_price, amount)
@@ -115,6 +117,11 @@ class Robot(object):
 		print('最低卖价:', low_ask, '最高买价', high_bids, '欲下订单价: ', order_price, 
 				'当前差价:', '{:.9f}'.format(real_price_difference), '设定差价:', '{:.9f}'.format(price_difference))
 		if real_price_difference > price_difference:
+			gap = 0
+			if is_using_gap:
+				gap = price_difference/4
+				if is_mutable_gap:
+					gap = real_price_difference/4
 			# print('现在价格:', newest_price, '挂单价格', order_price)
 			trade_amount = min(high_bids_amount, low_ask_amount) / 2
 			if is_mutable_amount:
@@ -123,9 +130,9 @@ class Robot(object):
 				if trade_amount < miniamount:
 					trade_amount = miniamount
 				trade_amount = self.trunc(trade_amount, self.amount_decimal)
-				self.strategy(symbol, order_price, trade_amount)
+				self.strategy(symbol, order_price, trade_amount, gap)
 			else:
-				self.strategy(symbol, order_price, amount)
+				self.strategy(symbol, order_price, amount, gap)
 		else:
 			print('差价太小，放弃本次成交')
 
