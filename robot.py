@@ -12,9 +12,11 @@ import os, time
 import math
 import balance
 import logging
+import threading
+
 
 symbol = symbols[0] + symbols[1]
-logfile = "robot.log"
+logfile = "robot1.log"
 
 is_using_gap = True
 is_mutable_gap = True
@@ -95,10 +97,20 @@ class Robot(object):
 
 	def strategy(self, symbol, order_price, amount, gap):
 		# print('使用单边震荡策略')
+		# lprint("start strategy", logging.DEBUG)
 		buy_price = self.trunc(order_price-gap, self.price_decimal)
 		sell_price = self.trunc(order_price+gap, self.price_decimal)
-		buy_id = self.buy_action(symbol, buy_price, amount)
-		sell_id = self.sell_action(symbol, sell_price, amount)
+		buy_thread = threading.Thread(
+			target=self.buy_action, args=(symbol, buy_price, amount))
+		sell_thread = threading.Thread(
+			target=self.sell_action, args=(symbol, sell_price, amount))
+		# lprint("start buy", logging.DEBUG)
+		# buy_id = self.buy_action(symbol, buy_price, amount)
+		buy_thread.start()
+		# lprint("start sell", logging.DEBUG)
+		# sell_id = self.sell_action(symbol, sell_price, amount)
+		sell_thread.start()
+		# lprint("end strategy", logging.DEBUG)
 
 
 	def trade(self):
@@ -112,10 +124,8 @@ class Robot(object):
 		high_bids_amount = ticker[3]
 		low_ask = ticker[4]
 		low_ask_amount = ticker[5]
-		order_price = self.trunc((low_ask + high_bids) / 2, self.price_decimal)
+		order_price = (low_ask + high_bids) / 2
 		real_price_difference = float(low_ask - high_bids)
-		print('最低卖价:', low_ask, '最高买价', high_bids, '欲下订单价: ', order_price, 
-				'当前差价:', '{:.9f}'.format(real_price_difference), '设定差价:', '{:.9f}'.format(price_difference))
 		if real_price_difference > price_difference:
 			gap = 0
 			if is_using_gap:
@@ -124,6 +134,9 @@ class Robot(object):
 					gap = real_price_difference/4
 			# print('现在价格:', newest_price, '挂单价格', order_price)
 			trade_amount = min(high_bids_amount, low_ask_amount) / 2
+
+			lprint('最低卖价: {} 最高买价: {} 当前差价:{:.9f} 设定差价: {:.9f}'.format(
+				low_ask, high_bids, real_price_difference, price_difference))
 			if is_mutable_amount:
 				if trade_amount > maxamount:
 					trade_amount = maxamount
@@ -134,6 +147,8 @@ class Robot(object):
 			else:
 				self.strategy(symbol, order_price, amount, gap)
 		else:
+			print('最低卖价: {} 最高买价: {} 当前差价:{:.9f} 设定差价: {:.9f}'.format(
+				low_ask, high_bids, real_price_difference, price_difference))
 			print('差价太小，放弃本次成交')
 
 	def run(self):
@@ -158,7 +173,7 @@ class Robot(object):
 if __name__ == '__main__':
 	try:
 		logging.basicConfig(filename=logfile, level=logging.INFO,
-                      format='%(asctime)s %(levelname)s %(message)s', datefmt='%m/%d/%Y %H:%M:%S')
+                      format='%(asctime)s %(levelname)s %(threadName)s %(message)s')  # , datefmt='%m/%d/%Y %H:%M:%S')
 		logging.warning("开始刷单")
 		robot = Robot()
 		robot.run()

@@ -17,7 +17,7 @@ is_direct_buy = 0
 # 查询余额类型
 symbol_type = ['usdt', 'ft', 'eth']
 # 买卖间隔时间
-second = 0.5
+second = 1.0
 
 
 # 需要计算手续费的开始时间

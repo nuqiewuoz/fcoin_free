@@ -30,6 +30,7 @@ class Fcoin():
         self.time = 0.1
         self.timeout = 10
 
+
     def handler_error_if_needed(self, json):
         if 'status' in json:
             status = json['status']
@@ -60,6 +61,7 @@ class Fcoin():
             print('reconnect...')
             time.sleep(self.time)
             return self.public_request(method, api_url, **payload)
+
 
     def get_signed(self, sig_str):
         sig_str = base64.b64encode(sig_str)
@@ -93,6 +95,7 @@ class Fcoin():
         }
         
         print(method, full_url, payload)
+        # logging.debug("{} {} {}".format(method, full_url, payload))
         try:
             r = requests.request(method, full_url, headers=headers, json=payload, timeout=self.timeout)
         except Exception as err:

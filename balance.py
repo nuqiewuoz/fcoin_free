@@ -15,7 +15,7 @@ fcoin = Fcoin(api_key, api_secret)
 # 查询账户余额
 def get_balance_action(symbols):
     balance_info = fcoin.get_balance()
-    logging.debug(balance_info)
+    # logging.debug(balance_info)
     balances = []
     for info in balance_info['data']:
         for symbol in symbols:
@@ -29,7 +29,7 @@ def get_balance_action(symbols):
 
 def total_balance_as_token(symbol, balances):
     symbols_info = fcoin.get_symbols()
-    logging.debug(symbols_info)
+    # logging.debug(symbols_info)
     total = 0
     for balance in balances:
         balance_symbol = balance['currency']
@@ -59,7 +59,7 @@ def total_balance():
     balance_info = fcoin.get_balance()
     balances = balance_info['data']
     symbols_info = fcoin.get_symbols()
-    logging.debug(symbols_info)
+    # logging.debug(symbols_info)
     totalusdt = 0
     totaleth = 0
     usdt = "usdt"
