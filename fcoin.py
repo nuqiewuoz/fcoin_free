@@ -29,6 +29,7 @@ class Fcoin():
         self.secret = bytes(secret, 'utf-8')
         self.time = 0.1
         self.timeout = 10
+        self.session = requests.session()
 
 
     def handler_error_if_needed(self, json):
@@ -46,7 +47,8 @@ class Fcoin():
     def public_request(self, method, api_url, **payload):
         r_url = self.base_url + api_url
         try:
-            r = requests.request(method, r_url, params=payload, timeout = self.timeout)
+            r = self.session.request(
+                method, r_url, params=payload, timeout=self.timeout)
         except Exception as err:
             print('http error is', err, api_url)
             print('reconnect...')
@@ -97,7 +99,8 @@ class Fcoin():
         print(method, full_url, payload)
         # logging.debug("{} {} {}".format(method, full_url, payload))
         try:
-            r = requests.request(method, full_url, headers=headers, json=payload, timeout=self.timeout)
+            r = self.session.request(
+                method, full_url, headers=headers, json=payload, timeout=self.timeout)
         except Exception as err:
             print('http error is', err)
             print('reconnect...')

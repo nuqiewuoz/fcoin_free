@@ -8,21 +8,23 @@ import math
 import logging
 import pandas as pd
 import balance
+import threading
 
 symbol_pairs = ['ethusdt', 'ftusdt', 'fteth']
 symbols = ['eth', 'usdt', 'ft']
 ethamount = 0.01
-difference = 1.0005
-is_market_order = False
-need_calc_slippage = False
+difference = 1.0008
 is_use_amount = True
-is_mutable_amount = True
+
+is_mutable_amount = False
 miniamount = 0.005
 maxamount = 0.02
-logfile = "arbitrage_strict1.log"
+logfile = "arbitrage_strict.log"
 
+is_market_order = False
+need_calc_slippage = False
 if is_market_order:
-	logfile = "arbitrage_strict6.log"
+	logfile = "arbitrage_strict_m.log"
 	# need_calc_slippage = True
 
 
@@ -53,7 +55,7 @@ class ArbitrageRobot(object):
 		if 'ticker' in message:
 			symbol = message['type'].split('.')[1]
 			self.tickers[symbol] = message['ticker']
-			logging.debug("ticker: {}".format(message['ticker']))
+			# logging.debug("ticker: {}".format(message['ticker']))
 		else :
 			logging.debug("ticker message: {}".format(message))
 
@@ -147,9 +149,15 @@ class ArbitrageRobot(object):
 					lprint("总滑点为{:.3}‰ 依次为{:.3}‰ {:.3}‰ {:.3}‰".format(
 						slippage1+slippage2+slippage3, slippage1, slippage2, slippage3))
 			else:
-				self.sell_action("fteth", pricedf["fteth"], ftamount)
-				self.buy_action("ftusdt", pricedf["ftusdt"], ftamount)
-				self.sell_action("ethusdt", pricedf["ethusdt"], amount)
+				thread1 = threading.Thread(target=self.sell_action, args=("fteth", pricedf["fteth"], ftamount))
+				thread2 = threading.Thread(target=self.buy_action, args=("ftusdt", pricedf["ftusdt"], ftamount))
+				thread3 = threading.Thread(target=self.sell_action, args=("ethusdt", pricedf["ethusdt"], amount))
+				# self.sell_action("fteth", pricedf["fteth"], ftamount)
+				# self.buy_action("ftusdt", pricedf["ftusdt"], ftamount)
+				# self.sell_action("ethusdt", pricedf["ethusdt"], amount)
+				thread1.start()
+				thread2.start()
+				thread3.start()
 		elif type == 2:
 			ftamount = self.trunc(amount/pricedf["fteth"], 2)
 			usdtamount = self.trunc(amount*pricedf["ethusdt"], 2)
@@ -169,9 +177,15 @@ class ArbitrageRobot(object):
 					lprint("总滑点为{:.3}‰ 依次为{:.3}‰ {:.3}‰ {:.3}‰".format(
 						slippage1+slippage2+slippage3, slippage1, slippage2, slippage3))
 			else:
-				self.buy_action("fteth", pricedf["fteth"], ftamount)
-				self.sell_action("ftusdt", pricedf["ftusdt"], ftamount)
-				self.buy_action("ethusdt", pricedf["ethusdt"], amount)
+				thread1 = threading.Thread(target=self.buy_action, args=("fteth", pricedf["fteth"], ftamount))
+				thread2 = threading.Thread(target=self.sell_action, args=("ftusdt", pricedf["ftusdt"], ftamount))
+				thread3 = threading.Thread(target=self.buy_action, args=("ethusdt", pricedf["ethusdt"], amount))
+				# self.buy_action("fteth", pricedf["fteth"], ftamount)
+				# self.sell_action("ftusdt", pricedf["ftusdt"], ftamount)
+				# self.buy_action("ethusdt", pricedf["ethusdt"], amount)
+				thread1.start()
+				thread2.start()
+				thread3.start()
 		
 
 	def trade(self):
@@ -206,8 +220,8 @@ class ArbitrageRobot(object):
                                             info_df.amount["ftusdt"] / ftamount, info_df.amount["fteth"] / ftamount]
 					if min(rates) * amount < miniamount:
 						lprint('挂单量太小，本次无法套利 方式一', logging.DEBUG)
-						print("{} {}".format(amount, ftamount))
-						print(info_df.amount)
+						# print("{} {}".format(amount, ftamount))
+						# print(info_df.amount)
 						return
 					else:
 						if is_mutable_amount:
@@ -215,8 +229,8 @@ class ArbitrageRobot(object):
 							if amount > maxamount:
 								amount = maxamount
 							lprint("每单金额{}eth，最小利差{:.2}‰".format(amount, (difference-1)*1000))
-				self.strategy(1, info_df.price, amount)
 				lprint("满足套利条件1 套利值为{:.4}‰".format(taoli1*1000-1000))
+				self.strategy(1, info_df.price, amount)
 				lprint("fteth卖价：{} ftusdt买价：{} ethusdt卖价：{}".format(
 					info_df.price["fteth"], info_df.price["ftusdt"], info_df.price["ethusdt"]))
 				# print(info_df)
@@ -231,8 +245,8 @@ class ArbitrageRobot(object):
                                             info_df.amount["ftusdt"] / ftamount, info_df.amount["fteth"] / ftamount]
 					if min(rates) * amount < miniamount:
 						lprint('挂单量太小，本次无法套利 方式二', logging.DEBUG)
-						print("{} {}".format(amount, ftamount))
-						print(info_df.amount)
+						# print("{} {}".format(amount, ftamount))
+						# print(info_df.amount)
 						return
 					else:
 						if is_mutable_amount:
@@ -240,8 +254,8 @@ class ArbitrageRobot(object):
 							if amount > maxamount:
 								amount = maxamount
 							lprint("每单金额{}eth，最小利差{:.2}‰".format(amount, (difference-1)*1000))
-				self.strategy(2, info_df.price, amount)
 				lprint("满足套利条件2 套利值比为{:.4}‰".format(taoli2*1000-1000))
+				self.strategy(2, info_df.price, amount)
 				lprint("fteth买价：{} ftusdt卖价：{} ethusdt买价：{}".format(
 					info_df.price["fteth"], info_df.price["ftusdt"], info_df.price["ethusdt"]))
 				# print(info_df)
@@ -272,7 +286,7 @@ class ArbitrageRobot(object):
 if __name__ == '__main__':
 	try:
 		logging.basicConfig(filename=logfile, level=logging.INFO,
-                      format='%(asctime)s %(levelname)s %(message)s', datefmt='%m/%d/%Y %H:%M:%S')
+                      format='%(asctime)s %(levelname)s %(threadName)s %(message)s')
 		logging.warning("套利成功！")
 		lprint("每单金额{}eth，最小利差{:.2}‰".format(ethamount, (difference-1)*1000))
 		robot = ArbitrageRobot()

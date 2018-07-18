@@ -19,11 +19,13 @@ symbol = symbols[0] + symbols[1]
 logfile = "robot1.log"
 
 is_using_gap = True
-is_mutable_gap = True
+is_mutable_gap = False
 
 is_mutable_amount = False
 miniamount = 0.01
 maxamount = 0.02
+
+is_multi_thread = False
 
 
 def lprint(msg, level=logging.INFO):
@@ -100,17 +102,19 @@ class Robot(object):
 		# lprint("start strategy", logging.DEBUG)
 		buy_price = self.trunc(order_price-gap, self.price_decimal)
 		sell_price = self.trunc(order_price+gap, self.price_decimal)
-		buy_thread = threading.Thread(
-			target=self.buy_action, args=(symbol, buy_price, amount))
-		sell_thread = threading.Thread(
-			target=self.sell_action, args=(symbol, sell_price, amount))
-		# lprint("start buy", logging.DEBUG)
-		# buy_id = self.buy_action(symbol, buy_price, amount)
-		buy_thread.start()
-		# lprint("start sell", logging.DEBUG)
-		# sell_id = self.sell_action(symbol, sell_price, amount)
-		sell_thread.start()
-		# lprint("end strategy", logging.DEBUG)
+		if is_multi_thread:
+			buy_thread = threading.Thread(
+				target=self.buy_action, args=(symbol, buy_price, amount))
+			sell_thread = threading.Thread(
+				target=self.sell_action, args=(symbol, sell_price, amount))
+			buy_thread.start()
+			sell_thread.start()
+		else:
+			# lprint("start buy", logging.DEBUG)
+			buy_id = self.buy_action(symbol, buy_price, amount)
+			# lprint("start sell", logging.DEBUG)
+			sell_id = self.sell_action(symbol, sell_price, amount)
+			# lprint("end strategy", logging.DEBUG)
 
 
 	def trade(self):
@@ -172,7 +176,7 @@ class Robot(object):
 
 if __name__ == '__main__':
 	try:
-		logging.basicConfig(filename=logfile, level=logging.INFO,
+		logging.basicConfig(filename=logfile, level=logging.DEBUG,
                       format='%(asctime)s %(levelname)s %(threadName)s %(message)s')  # , datefmt='%m/%d/%Y %H:%M:%S')
 		logging.warning("开始刷单")
 		robot = Robot()
