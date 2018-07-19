@@ -16,16 +16,16 @@ import threading
 
 
 symbol = symbols[0] + symbols[1]
-logfile = "robot1.log"
+logfile = "robot.log"
 
 is_using_gap = True
-is_mutable_gap = False
+is_mutable_gap = True
 
 is_mutable_amount = False
 miniamount = 0.01
 maxamount = 0.02
 
-is_multi_thread = False
+is_multi_thread = True
 
 
 def lprint(msg, level=logging.INFO):
@@ -139,8 +139,8 @@ class Robot(object):
 			# print('现在价格:', newest_price, '挂单价格', order_price)
 			trade_amount = min(high_bids_amount, low_ask_amount) / 2
 
-			lprint('最低卖价: {} 最高买价: {} 当前差价:{:.9f} 设定差价: {:.9f}'.format(
-				low_ask, high_bids, real_price_difference, price_difference))
+			lprint('最低卖价: {} 最高买价: {} 当前差价:{:.9f} 买卖差价: {:.9f}'.format(
+				low_ask, high_bids, real_price_difference, gap*2))
 			if is_mutable_amount:
 				if trade_amount > maxamount:
 					trade_amount = maxamount
@@ -162,6 +162,8 @@ class Robot(object):
 		self.client.subscribe_tickers([symbol], self.ticker_handler)
 		self.symbols_action()
 		# self.get_balance_action(symbols)
+		if not is_mutable_amount:
+			logging.info("交易标的:{} 每单交易量:{} {}".format(symbol, amount, symbols[0]))
 		balance.balance()
 		while True:
 			self.trade()
@@ -169,14 +171,14 @@ class Robot(object):
 	def on_close(self):
 		print("websocket closed, try to restart...")
 		time.sleep(second)
-		self.client = fcoin_client(self.on_close)
+		# self.client = fcoin_client(self.on_close)
 		self.client.start()
 		self.client.subscribe_tickers([symbol], self.ticker_handler)
 
 
 if __name__ == '__main__':
 	try:
-		logging.basicConfig(filename=logfile, level=logging.DEBUG,
+		logging.basicConfig(filename=logfile, level=logging.INFO,
                       format='%(asctime)s %(levelname)s %(threadName)s %(message)s')  # , datefmt='%m/%d/%Y %H:%M:%S')
 		logging.warning("开始刷单")
 		robot = Robot()

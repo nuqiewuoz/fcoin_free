@@ -8,6 +8,7 @@ from fcoin import Fcoin
 from auth import api_key, api_secret
 from config import symbol_type
 import logging
+import time
 
 # 初始化
 fcoin = Fcoin(api_key, api_secret)
@@ -129,4 +130,5 @@ def balance(all=False):
 # 守护进程
 if __name__ == '__main__':
     # logging.basicConfig(level=logging.DEBUG)
+    print(time.ctime())
     balance(False)

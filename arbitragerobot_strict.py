@@ -12,14 +12,14 @@ import threading
 
 symbol_pairs = ['ethusdt', 'ftusdt', 'fteth']
 symbols = ['eth', 'usdt', 'ft']
-ethamount = 0.01
-difference = 1.0008
+ethamount = 0.005
+difference = 1.0006
 is_use_amount = True
 
 is_mutable_amount = False
 miniamount = 0.005
 maxamount = 0.02
-logfile = "arbitrage_strict.log"
+logfile = "test_arbitrage_strict.log"
 
 is_market_order = False
 need_calc_slippage = False
@@ -285,7 +285,7 @@ class ArbitrageRobot(object):
 
 if __name__ == '__main__':
 	try:
-		logging.basicConfig(filename=logfile, level=logging.INFO,
+		logging.basicConfig(filename=logfile, level=logging.DEBUG,
                       format='%(asctime)s %(levelname)s %(threadName)s %(message)s')
 		logging.warning("套利成功！")
 		lprint("每单金额{}eth，最小利差{:.2}‰".format(ethamount, (difference-1)*1000))
