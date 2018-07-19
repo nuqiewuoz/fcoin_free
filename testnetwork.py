@@ -8,6 +8,10 @@ import time
 def setlog():
     logging.basicConfig(filename="testnetwork.log", level=logging.DEBUG, format='%(asctime)s %(processName)s %(threadName)s %(levelname)s %(message)s')
 
+def lprint(msg, level=logging.INFO):
+    print(msg)
+    logging.log(level, msg)
+
 
 def test_network(ip=None, repeat=10):
     if ip == None:
@@ -24,12 +28,11 @@ def test_network(ip=None, repeat=10):
         logging.info('begin url connect test:{}'.format(url))
         for i in range(repeat):
             r = s.get(url)
-            logging.info(r.json())
+            now = time.time()*1000
+            lprint("local:{} server:{} delta:{}ms".format(now, r.json()['data'], int(now)-int(r.json()['data'])))
         endat = time.time()
-        logging.info('total time:{} avg time:{}'.format(
-            endat-beginat, (endat-beginat)/repeat))
-        print('connect:{} total time:{} avg time:{}'.format(
-            ip, endat-beginat, (endat-beginat)/repeat))
+        lprint('total time:{:.5}s avg time:{:.4}ms'.format(
+            endat-beginat, (endat-beginat)/repeat*1000))
 
 if __name__ == '__main__':
     try:
