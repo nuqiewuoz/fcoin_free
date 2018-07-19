@@ -27,8 +27,10 @@ def test_network(ip=None, repeat=10):
         beginat = time.time()
         logging.info('begin url connect test:{}'.format(url))
         for i in range(repeat):
+            old = time.time()*1000
             r = s.get(url)
             now = time.time()*1000
+            lprint("before:{} after:{} delta:{}ms".format(old, now, int(now-old)), logging.DEBUG)
             lprint("local:{} server:{} delta:{}ms".format(now, r.json()['data'], int(now)-int(r.json()['data'])))
         endat = time.time()
         lprint('total time:{:.5}s avg time:{:.4}ms'.format(
