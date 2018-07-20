@@ -31,12 +31,12 @@ def test_network(repeat=20, api=None):
         beginat = time.time()
         lprint('begin network connect test:{}'.format(url), logging.DEBUG)
         for i in range(repeat):
-            old = time.time()*1000
+            old = int(time.time()*1000)
             r = s.get(url)
-            now = time.time()*1000
+            now = int(time.time()*1000)
             server = int(r.json()['data'])
             diff = (now + old)/2 - server
-            lprint("before:{} after:{} server:{} delta:{}ms difference:{}".format(old, now, server, int(now-old), int(diff)), logging.DEBUG)
+            lprint("before:{} after:{} server:{} delta:{}ms difference:{}".format(old, now, server, now-old, diff), logging.DEBUG)
             diffs.append(diff)
 
         endat = time.time()
@@ -45,7 +45,11 @@ def test_network(repeat=20, api=None):
     return sum(diffs)/len(diffs)
 
 
-def test_create_order(repeat = 10):
+def test_create_order(repeat=10):
+    # 估算时间差
+    system_delta = test_network()
+    lprint('预计系统时间差:{:.4}ms'.format(system_delta))
+        
     fcoin = Fcoin(api_key, api_secret)
     beginat = time.time()
     symbol = "fteth"
@@ -54,11 +58,10 @@ def test_create_order(repeat = 10):
     logging.info('begin create order test: buy {}'.format(symbol))
     orders_info = []
     for i in range(repeat):
-        old = time.time()*1000
+        old = int(time.time()*1000)
         buy_result = fcoin.buy(symbol, price, 3)
-        now = time.time()*1000
-        lprint("before:{} after:{} delta:{}ms".format(
-            old, now, int(now-old)), logging.DEBUG)
+        now = int(time.time()*1000)
+        lprint("before:{} after:{} delta:{}ms".format(old, now, now-old), logging.DEBUG)
         logging.debug("buy order result:{}".format(buy_result))
         orders_info.append((buy_result['data'], old))
     endat = time.time()
@@ -73,8 +76,6 @@ def test_create_order(repeat = 10):
         fcoin.cancel_order(order_id)
         delta_times.append(delta)
     avg = sum(delta_times)/len(delta_times)
-    # 估算时间差
-    system_delta = test_network()
     lprint('average time delta: {:.5}ms differece:{:.4}ms'.format(
         avg, system_delta))
     lprint('平均下单时间为:{:.4}ms'.format(avg+system_delta))
@@ -83,6 +84,6 @@ def test_create_order(repeat = 10):
 if __name__ == '__main__':
     try:
         setlog()
-        test_network()
+        test_create_order()
     except KeyboardInterrupt:
         os._exit(1)
