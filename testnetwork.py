@@ -8,7 +8,7 @@ from fcoin import Fcoin
 from auth import api_key, api_secret
 
 def setlog():
-    logging.basicConfig(filename="testnetwork.log", level=logging.DEBUG, format='%(asctime)s %(processName)s %(threadName)s %(levelname)s %(message)s')
+    logging.basicConfig(filename="testnetwork.log", level=logging.INFO, format='%(asctime)s %(processName)s %(threadName)s %(levelname)s %(message)s')
 
 
 def lprint(msg, level=logging.INFO):
@@ -36,7 +36,7 @@ def test_network(repeat=20, api=None):
             now = int(time.time()*1000)
             server = int(r.json()['data'])
             diff = (now + old)/2 - server
-            lprint("before:{} after:{} server:{} delta:{}ms difference:{}".format(old, now, server, now-old, diff), logging.DEBUG)
+            lprint("before:{} after:{} server:{} delta:{}ms difference:{}".format(old, now, server, now-old, diff))
             diffs.append(diff)
 
         endat = time.time()
@@ -61,7 +61,7 @@ def test_create_order(repeat=10):
         old = int(time.time()*1000)
         buy_result = fcoin.buy(symbol, price, 3)
         now = int(time.time()*1000)
-        lprint("before:{} after:{} delta:{}ms".format(old, now, now-old), logging.DEBUG)
+        lprint("before:{} after:{} delta:{}ms".format(old, now, now-old))
         logging.debug("buy order result:{}".format(buy_result))
         orders_info.append((buy_result['data'], old))
     endat = time.time()
