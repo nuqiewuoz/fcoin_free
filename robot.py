@@ -27,7 +27,7 @@ is_mutable_amount = False
 miniamount = 0.01
 maxamount = 0.02
 
-is_multi_thread = True
+is_multi_thread = False
 is_multi_process = True
 
 HEARTBEAT = 10
@@ -64,6 +64,9 @@ class Robot(object):
 		fcoin_buy.get_server_time()
 		lprint("Buy process started")
 		while(True):
+			if q.empty():
+				time.sleep(0.01)
+				continue
 			type, data = q.get()
 			if type == HEARTBEAT:
 				st = fcoin_buy.get_server_time()
@@ -81,6 +84,9 @@ class Robot(object):
 		fcoin_sell.get_server_time()
 		lprint("Sell process started")
 		while(True):
+			if q.empty():
+				time.sleep(0.01)
+				continue
 			type, data = self.sell_queue.get()
 			if type == HEARTBEAT:
 				st = fcoin_sell.get_server_time()
