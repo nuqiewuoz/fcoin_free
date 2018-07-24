@@ -52,8 +52,8 @@ class Robot(object):
 		if is_multi_process:
 			self.buy_queue = Queue()
 			self.sell_queue = Queue()
-			self.process_buy = Process(target=self.buy_loop, args=(self.buy_queue,))
-			self.process_sell = Process(target=self.sell_loop, args=(self.sell_queue,))
+			self.process_buy = threading.Thread(target=self.buy_loop, args=(self.buy_queue,))
+			self.process_sell = threading.Thread(target=self.sell_loop, args=(self.sell_queue,))
 			self.process_buy.start()
 			self.process_sell.start()
 
@@ -64,9 +64,7 @@ class Robot(object):
 		fcoin_buy.get_server_time()
 		lprint("Buy process started")
 		while(True):
-			if q.empty():
-				time.sleep(0.01)
-				continue
+			time.sleep(0.001)
 			type, data = q.get()
 			if type == HEARTBEAT:
 				st = fcoin_buy.get_server_time()
@@ -84,9 +82,7 @@ class Robot(object):
 		fcoin_sell.get_server_time()
 		lprint("Sell process started")
 		while(True):
-			if q.empty():
-				time.sleep(0.01)
-				continue
+			time.sleep(0.001)
 			type, data = self.sell_queue.get()
 			if type == HEARTBEAT:
 				st = fcoin_sell.get_server_time()
@@ -249,9 +245,9 @@ if __name__ == '__main__':
 	try:
 		robot.run()
 	except KeyboardInterrupt:
-		if is_multi_process:
-			robot.process_buy.terminate()
-			robot.process_sell.terminate()
+		# if is_multi_process:
+		# 	robot.process_buy.terminate()
+		# 	robot.process_sell.terminate()
 		os._exit(1)
 
 
