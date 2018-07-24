@@ -7,16 +7,18 @@
 from fcoin import Fcoin
 from fcoin_websocket.fcoin_client import fcoin_client
 from auth import api_key, api_secret
-from config import symbols, second, amount, price_difference, is_direct_buy
+from config import symbols, second, amount, price_difference
 import os, time
 import math
 import balance
 import logging
 import threading
+from multiprocessing import Process, Queue
+import multiprocessing
 
 
 symbol = symbols[0] + symbols[1]
-logfile = "robot.log"
+logfile = "testrobot.log"
 
 is_using_gap = True
 is_mutable_gap = True
@@ -26,6 +28,12 @@ miniamount = 0.01
 maxamount = 0.02
 
 is_multi_thread = True
+is_multi_process = True
+
+HEARTBEAT = 10
+TRADE = 20
+
+heartbeat_interval = 60
 
 
 def lprint(msg, level=logging.INFO):
@@ -37,7 +45,52 @@ class Robot(object):
 	"""docstring for Robot"""
 	def __init__(self):
 		self.fcoin = Fcoin(api_key, api_secret)
+
 		# self.ticker = []
+		self.time_since_last_call = 0
+		self.price_decimal = 4
+		if is_multi_process:
+			self.buy_queue = Queue()
+			self.sell_queue = Queue()
+			self.process_buy = Process(target=self.buy_loop, args=(self.buy_queue,))
+			self.process_sell = Process(target=self.sell_loop, args=(self.sell_queue,))
+			self.process_buy.start()
+			self.process_sell.start()
+
+
+	def buy_loop(self, q):
+		fcoin_buy = Fcoin(api_key, api_secret)
+		#每分钟重连一次，其余时间等待buy信号
+		fcoin_buy.get_server_time()
+		lprint("Buy process started")
+		while(True):
+			type, data = q.get()
+			if type == HEARTBEAT:
+				st = fcoin_buy.get_server_time()
+				print(st)
+			elif type == TRADE:
+				buy_result = fcoin_buy.buy(data[0], self.trunc(data[1], self.price_decimal), data[2])
+				# print('buy_result is', buy_result)
+				buy_order_id = buy_result['data']
+				if buy_order_id:
+					lprint('买单{} 价格成功委托 订单ID{}'.format(data[1], buy_order_id))
+
+
+	def sell_loop(self, q):
+		fcoin_sell = Fcoin(api_key, api_secret)
+		fcoin_sell.get_server_time()
+		lprint("Sell process started")
+		while(True):
+			type, data = self.sell_queue.get()
+			if type == HEARTBEAT:
+				st = fcoin_sell.get_server_time()
+				print(st)
+			elif type == TRADE:
+				sell_result = fcoin_sell.sell(data[0], self.trunc(data[1], self.price_decimal), data[2])
+				# print('buy_result is', buy_result)
+				sell_order_id = sell_result['data']
+				if sell_order_id:
+					lprint('卖单{} 价格成功委托 订单ID{}'.format(data[1], sell_order_id))
 
 	# 截取指定小数位数
 	def trunc(self, f, n):
@@ -86,10 +139,7 @@ class Robot(object):
 	def sell_action(self, this_symbol, this_price, this_amount):
 		# ticker = self.ticker
 		# print('准备卖出', this_price, ticker)
-		if is_direct_buy == 1:
-			sell_result = self.fcoin.sell(this_symbol, self.trunc(this_price * (1 - 0.0002), self.price_decimal), this_amount)
-		else:
-			sell_result = self.fcoin.sell(this_symbol, this_price, this_amount)
+		sell_result = self.fcoin.sell(this_symbol, this_price, this_amount)
 		# print('sell_result is: ', sell_result)
 		sell_order_id = sell_result['data']
 		if sell_order_id:
@@ -102,7 +152,10 @@ class Robot(object):
 		# lprint("start strategy", logging.DEBUG)
 		buy_price = self.trunc(order_price-gap, self.price_decimal)
 		sell_price = self.trunc(order_price+gap, self.price_decimal)
-		if is_multi_thread:
+		if is_multi_process:
+			self.buy_queue.put((TRADE, [symbol, buy_price, amount]))
+			self.sell_queue.put((TRADE, [symbol, buy_price, amount]))
+		elif is_multi_thread:
 			buy_thread = threading.Thread(
 				target=self.buy_action, args=(symbol, buy_price, amount))
 			sell_thread = threading.Thread(
@@ -110,11 +163,8 @@ class Robot(object):
 			buy_thread.start()
 			sell_thread.start()
 		else:
-			# lprint("start buy", logging.DEBUG)
-			buy_id = self.buy_action(symbol, buy_price, amount)
-			# lprint("start sell", logging.DEBUG)
-			sell_id = self.sell_action(symbol, sell_price, amount)
-			# lprint("end strategy", logging.DEBUG)
+			self.buy_action(symbol, buy_price, amount)
+			self.sell_action(symbol, sell_price, amount)
 
 
 	def trade(self):
@@ -150,10 +200,19 @@ class Robot(object):
 				self.strategy(symbol, order_price, trade_amount, gap)
 			else:
 				self.strategy(symbol, order_price, amount, gap)
+			
+			self.time_since_last_call = 0
 		else:
 			print('最低卖价: {} 最高买价: {} 当前差价:{:.9f} 设定差价: {:.9f}'.format(
 				low_ask, high_bids, real_price_difference, price_difference))
 			print('差价太小，放弃本次成交')
+
+			if is_multi_process:
+				self.time_since_last_call += 1
+				if self.time_since_last_call > heartbeat_interval:
+					self.time_since_last_call = 0
+					self.buy_queue.put((HEARTBEAT, None))
+					self.sell_queue.put((HEARTBEAT, None))
 
 	def run(self):
 		self.client = fcoin_client(self.on_close)
@@ -177,13 +236,16 @@ class Robot(object):
 
 
 if __name__ == '__main__':
+	logging.basicConfig(filename=logfile, level=logging.INFO,
+					format='%(asctime)s %(levelname)s %(threadName)s %(message)s')  # , datefmt='%m/%d/%Y %H:%M:%S')
+	logging.warning("开始刷单")
+	robot = Robot()
 	try:
-		logging.basicConfig(filename=logfile, level=logging.INFO,
-                      format='%(asctime)s %(levelname)s %(threadName)s %(message)s')  # , datefmt='%m/%d/%Y %H:%M:%S')
-		logging.warning("开始刷单")
-		robot = Robot()
 		robot.run()
 	except KeyboardInterrupt:
+		if is_multi_process:
+			robot.process_buy.terminate()
+			robot.process_sell.terminate()
 		os._exit(1)
 
 
