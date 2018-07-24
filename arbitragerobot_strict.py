@@ -16,10 +16,11 @@ ethamount = 0.005
 difference = 1.0006
 is_use_amount = True
 
+heartbeat_interval = 60
 is_mutable_amount = False
 miniamount = 0.005
 maxamount = 0.02
-logfile = "test_arbitrage_strict.log"
+logfile = "arbitrage_strict.log"
 
 is_market_order = False
 need_calc_slippage = False
@@ -42,6 +43,7 @@ class ArbitrageRobot(object):
 		self.amount_decimals = {}
 		self.tickers = {}
 		pd.set_option('precision', 8)
+		self.time_since_last_call = 0
 
 
 	# 截取指定小数位数
@@ -129,6 +131,7 @@ class ArbitrageRobot(object):
 	def strategy(self, type, pricedf, amount):
 		# 从fteth开始交易, 因为它成交量最小
 		print('使用套利策略')
+		self.time_since_last_call = 0
 		amount = self.trunc(amount, 4)
 		if type == 1:
 			usdtamount = self.trunc(amount*pricedf["ethusdt"], 2)
@@ -198,6 +201,7 @@ class ArbitrageRobot(object):
     买一下标为2， 卖一下标为4"""
 		time.sleep(second)
 		amount = ethamount
+		self.time_since_last_call += second
 		
 		if len(self.tickers) == len(symbol_pairs):
 			info_df = pd.DataFrame(self.tickers).T
@@ -220,8 +224,6 @@ class ArbitrageRobot(object):
                                             info_df.amount["ftusdt"] / ftamount, info_df.amount["fteth"] / ftamount]
 					if min(rates) * amount < miniamount:
 						lprint('挂单量太小，本次无法套利 方式一', logging.DEBUG)
-						# print("{} {}".format(amount, ftamount))
-						# print(info_df.amount)
 						return
 					else:
 						if is_mutable_amount:
@@ -233,7 +235,7 @@ class ArbitrageRobot(object):
 				self.strategy(1, info_df.price, amount)
 				lprint("fteth卖价：{} ftusdt买价：{} ethusdt卖价：{}".format(
 					info_df.price["fteth"], info_df.price["ftusdt"], info_df.price["ethusdt"]))
-				# print(info_df)
+
 			elif taoli2 > difference:
 				info_df["price"] = info_df[4]
 				info_df.loc["ftusdt", "price"] = info_df.loc["ftusdt", 2]
@@ -262,6 +264,15 @@ class ArbitrageRobot(object):
 			else:
 				lprint('差价太小，本次无法套利 方式一{} 方式二{}'.format(taoli1, taoli2), logging.DEBUG)
 
+		if self.time_since_last_call > heartbeat_interval:
+			thread1 = threading.Thread(target=self.fcoin.get_server_time)
+			thread2 = threading.Thread(target=self.fcoin.get_server_time)
+			thread3 = threading.Thread(target=self.fcoin.get_server_time)
+			thread1.start()
+			thread2.start()
+			thread3.start()
+
+
 
 	def run(self):
 		self.client = fcoin_client(self.on_close)
@@ -287,7 +298,7 @@ if __name__ == '__main__':
 	try:
 		logging.basicConfig(filename=logfile, level=logging.DEBUG,
                       format='%(asctime)s %(levelname)s %(threadName)s %(message)s')
-		logging.warning("套利成功！")
+		logging.warning("开始套利")
 		lprint("每单金额{}eth，最小利差{:.2}‰".format(ethamount, (difference-1)*1000))
 		robot = ArbitrageRobot()
 		robot.run()

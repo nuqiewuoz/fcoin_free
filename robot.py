@@ -16,7 +16,7 @@ import threading
 
 
 symbol = symbols[0] + symbols[1]
-logfile = "testrobot.log"
+logfile = "robot.log"
 
 is_using_gap = True
 is_mutable_gap = True
@@ -25,7 +25,7 @@ is_mutable_amount = False
 miniamount = 0.01
 maxamount = 0.02
 
-is_multi_thread = False
+is_multi_thread = True
 
 heartbeat_interval = 60
 
@@ -157,7 +157,13 @@ class Robot(object):
 			self.time_since_last_call += second
 			if self.time_since_last_call > heartbeat_interval:
 				# inorder to keep-alive
-				self.fcoin.get_server_time()
+				if is_multi_thread:
+					buy_thread = threading.Thread(target=self.fcoin.get_server_time)
+					sell_thread = threading.Thread(target=self.fcoin.get_server_time)
+					buy_thread.start()
+					sell_thread.start()
+				else:
+					self.fcoin.get_server_time()
 				self.time_since_last_call = 0
 				
 
@@ -184,11 +190,11 @@ class Robot(object):
 
 
 if __name__ == '__main__':
-	logging.basicConfig(filename=logfile, level=logging.INFO,
-					format='%(asctime)s %(levelname)s %(threadName)s %(message)s')  # , datefmt='%m/%d/%Y %H:%M:%S')
-	logging.warning("开始刷单")
-	robot = Robot()
 	try:
+		logging.basicConfig(filename=logfile, level=logging.INFO,
+						format='%(asctime)s %(levelname)s %(threadName)s %(message)s')  # , datefmt='%m/%d/%Y %H:%M:%S')
+		logging.warning("开始刷单")
+		robot = Robot()
 		robot.run()
 	except KeyboardInterrupt:
 		os._exit(1)
