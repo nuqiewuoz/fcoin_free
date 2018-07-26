@@ -15,12 +15,12 @@ symbol_pairs = ['ethusdt', 'zipusdt', 'zipeth']
 symbols = ['eth', 'usdt', 'zip']
 ethamount = 0.005
 difference = 1.0006
-is_use_amount = True
+is_use_amount = False
 
 heartbeat_interval = 60
 is_mutable_amount = True
 miniamount = 0.003
-maxamount = 0.03
+maxamount = 0.01
 logfile = "arbitrage_strict.log"
 
 ticker_queue = queue.Queue()
@@ -55,7 +55,7 @@ class ArbitrageRobot(object):
 			symbol = message['type'].split('.')[1]
 			self.tickers[symbol] = message['ticker']
 			ticker_queue.put(self.tickers, block=False)
-			logging.debug("get ticker")
+			logging.info("get ticker")
 			# logging.info("ticker message: {}".format(message))
 		else :
 			logging.debug("ticker message: {}".format(message))
@@ -166,14 +166,14 @@ class ArbitrageRobot(object):
 							if amount > maxamount:
 								amount = maxamount
 							lprint("每单金额{}eth，最小利差{:.2}‰".format(amount, (difference-1)*1000))
-				if ticker_queue.empty():
-					lprint("满足套利条件1 套利值为{:.4}‰".format(taoli1*1000-1000))
-					self.strategy(1, info_df.price, amount)
-					lprint("zipeth卖价：{} zipusdt买价：{} ethusdt卖价：{}".format(
-						info_df.price["zipeth"], info_df.price["zipusdt"], info_df.price["ethusdt"]))
-					time.sleep(second)
-				else:
-					lprint("已经收到新的ticker数据，取消本次交易")
+				# if ticker_queue.empty():
+				lprint("满足套利条件1 套利值为{:.5}‰".format(taoli1))
+				self.strategy(1, info_df.price, amount)
+				lprint("zipeth卖价：{} zipusdt买价：{} ethusdt卖价：{}".format(
+					info_df.price["zipeth"], info_df.price["zipusdt"], info_df.price["ethusdt"]))
+				time.sleep(second)
+				# else:
+				# 	lprint("已经收到新的ticker数据，取消本次交易")
 
 			elif taoli2 > difference:
 				info_df["price"] = info_df[4]
@@ -193,14 +193,14 @@ class ArbitrageRobot(object):
 							if amount > maxamount:
 								amount = maxamount
 							lprint("每单金额{}eth，最小利差{:.2}‰".format(amount, (difference-1)*1000))
-				if ticker_queue.empty():
-					lprint("满足套利条件2 套利值比为{:.4}‰".format(taoli2*1000-1000))
-					self.strategy(2, info_df.price, amount)
-					lprint("zipeth买价：{} zipusdt卖价：{} ethusdt买价：{}".format(
-						info_df.price["zipeth"], info_df.price["zipusdt"], info_df.price["ethusdt"]))
-					time.sleep(second)
-				else:
-					lprint("已经收到新的ticker数据，取消本次交易")
+				# if ticker_queue.empty():
+				lprint("满足套利条件2 套利值比为{:.5}‰".format(taoli2))
+				self.strategy(2, info_df.price, amount)
+				lprint("zipeth买价：{} zipusdt卖价：{} ethusdt买价：{}".format(
+					info_df.price["zipeth"], info_df.price["zipusdt"], info_df.price["ethusdt"]))
+				time.sleep(second)
+				# else:
+				# 	lprint("已经收到新的ticker数据，取消本次交易")
 			else:
 				lprint('差价太小，本次无法套利 方式一{} 方式二{}'.format(taoli1, taoli2), logging.DEBUG)
 
@@ -239,7 +239,7 @@ class ArbitrageRobot(object):
 
 if __name__ == '__main__':
 	try:
-		logging.basicConfig(filename=logfile, level=logging.DEBUG,
+		logging.basicConfig(filename=logfile, level=logging.INFO,
                       format='%(asctime)s %(levelname)s %(threadName)s %(message)s')
 		logging.warning("开始套利")
 		lprint("每单金额{}eth，最小利差{:.2}‰".format(ethamount, (difference-1)*1000))
