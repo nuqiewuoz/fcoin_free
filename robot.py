@@ -135,11 +135,11 @@ class Robot(object):
 				if is_mutable_gap:
 					gap = real_price_difference/4
 			# print('现在价格:', newest_price, '挂单价格', order_price)
-			trade_amount = min(high_bids_amount, low_ask_amount) / 2
 
 			lprint('最低卖价: {} 最高买价: {} 当前差价:{:.9f} 买卖差价: {:.9f}'.format(
 				low_ask, high_bids, real_price_difference, gap*2))
 			if is_mutable_amount:
+				trade_amount = min(high_bids_amount, low_ask_amount) / 2
 				if trade_amount > maxamount:
 					trade_amount = maxamount
 				if trade_amount < miniamount:

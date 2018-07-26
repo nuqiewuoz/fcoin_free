@@ -9,24 +9,21 @@ import logging
 import pandas as pd
 import balance
 import threading
+import queue
 
-symbol_pairs = ['ethusdt', 'ftusdt', 'fteth']
-symbols = ['eth', 'usdt', 'ft']
+symbol_pairs = ['ethusdt', 'zipusdt', 'zipeth']
+symbols = ['eth', 'usdt', 'zip']
 ethamount = 0.005
 difference = 1.0006
 is_use_amount = True
 
 heartbeat_interval = 60
-is_mutable_amount = False
-miniamount = 0.005
-maxamount = 0.02
+is_mutable_amount = True
+miniamount = 0.003
+maxamount = 0.03
 logfile = "arbitrage_strict.log"
 
-is_market_order = False
-need_calc_slippage = False
-if is_market_order:
-	logfile = "arbitrage_strict_m.log"
-	# need_calc_slippage = True
+ticker_queue = queue.Queue()
 
 
 def lprint(msg, level=logging.INFO):
@@ -42,8 +39,8 @@ class ArbitrageRobot(object):
 		self.price_decimals = {}
 		self.amount_decimals = {}
 		self.tickers = {}
-		pd.set_option('precision', 8)
-		self.time_since_last_call = 0
+		pd.set_option('precision', 10)
+		self.time_last_call = time.time()
 
 
 	# 截取指定小数位数
@@ -57,7 +54,9 @@ class ArbitrageRobot(object):
 		if 'ticker' in message:
 			symbol = message['type'].split('.')[1]
 			self.tickers[symbol] = message['ticker']
-			# logging.debug("ticker: {}".format(message['ticker']))
+			ticker_queue.put(self.tickers, block=False)
+			logging.debug("get ticker")
+			# logging.info("ticker message: {}".format(message))
 		else :
 			logging.debug("ticker message: {}".format(message))
 
@@ -75,153 +74,89 @@ class ArbitrageRobot(object):
 
 	# 买操作
 	def buy_action(self, this_symbol, this_price, this_amount, type="limit"):
-		if not is_market_order:
-			this_price = self.trunc(this_price, self.price_decimals[this_symbol])
-			this_amount = self.trunc(this_amount, self.amount_decimals[this_symbol])
+		this_price = self.trunc(this_price, self.price_decimals[this_symbol])
+		this_amount = self.trunc(this_amount, self.amount_decimals[this_symbol])
 		buy_result = self.fcoin.buy(this_symbol, this_price, this_amount, type)
 		# print('buy_result is', buy_result)
 		buy_order_id = buy_result['data']
 		if buy_order_id:
-			if is_market_order:
-				lprint("{} 买单成功委托, 订单ID {}".format(this_symbol, buy_order_id))
-			else:
-				lprint("买单 {} 价格成功委托, 订单ID {}".format(this_price, buy_order_id))
+			lprint("买单 {} 价格成功委托, 订单ID {}".format(this_price, buy_order_id))
 		return buy_order_id
 
 
 	# 卖操作
 	def sell_action(self, this_symbol, this_price, this_amount, type="limit"):
-		if not is_market_order:
-			this_price = self.trunc(this_price, self.price_decimals[this_symbol])
-			this_amount = self.trunc(this_amount, self.amount_decimals[this_symbol])
+		this_price = self.trunc(this_price, self.price_decimals[this_symbol])
+		this_amount = self.trunc(this_amount, self.amount_decimals[this_symbol])
 		sell_result = self.fcoin.sell(this_symbol, this_price, this_amount, type)
 		# print('sell_result is: ', sell_result)
 		sell_order_id = sell_result['data']
 		if sell_order_id:
-			if is_market_order:
-				lprint("{} 卖单成功委托, 订单ID {}".format(this_symbol, sell_order_id))
-			else:
-				lprint("卖单 {} 价格成功委托, 订单ID {}".format(this_price, sell_order_id))
+			lprint("卖单 {} 价格成功委托, 订单ID {}".format(this_price, sell_order_id))
 		return sell_order_id
 
 
-	def slippage(self, orderid, price):
-		# 单位是千分之一
-		result = self.fcoin.order_result(orderid)
-		print(result)
-		while result == None or len(result['data']) == 0:
-			print("reconnect...order...")
-			time.sleep(0.1)
-			result = self.fcoin.order_result(orderid)
-		slip = 0
-		amount = 0
-		total = 0
-		for order in result['data']:
-			amount += float(order["filled_amount"])
-			total += float(order["filled_amount"])*float(order["price"])
-		realprice = total/amount
-		lprint("实际成交均价为{}".format(realprice))
-		if result['data'][0]['type'] == "sell_market":
-			slip = (price-realprice)/price
-		else:
-			slip = (realprice-price)/price
-		return slip*1000
-
-
 	def strategy(self, type, pricedf, amount):
-		# 从fteth开始交易, 因为它成交量最小
+		# 从zipeth开始交易, 因为它成交量最小
 		print('使用套利策略')
-		self.time_since_last_call = 0
+		self.time_last_call = time.time()
 		amount = self.trunc(amount, 4)
 		if type == 1:
 			usdtamount = self.trunc(amount*pricedf["ethusdt"], 2)
-			ftamount = self.trunc(usdtamount/pricedf["ftusdt"], 2)
-			if is_market_order:
-				# 市价单的标的不同
-				order_id1 = self.sell_action("fteth", 0, ftamount, "market")
-				order_id2 = self.buy_action("ftusdt", 0, usdtamount, "market")
-				order_id3 = self.sell_action("ethusdt", 0, amount, "market")
-				if need_calc_slippage:
-					# 统计滑点
-					slippage1 = self.slippage(order_id1, pricedf["fteth"])
-					print("卖出 fteth 滑点为{:.3}‰".format(slippage1))
-					slippage2 = self.slippage(order_id2, pricedf["ftusdt"])
-					print("买入 ftusdt 滑点为{:.3}‰".format(slippage2))
-					slippage3 = self.slippage(order_id3, pricedf["ethusdt"])
-					print("卖出 ethusdt 滑点为{:.3}‰".format(slippage3))
-					lprint("总滑点为{:.3}‰ 依次为{:.3}‰ {:.3}‰ {:.3}‰".format(
-						slippage1+slippage2+slippage3, slippage1, slippage2, slippage3))
-			else:
-				thread1 = threading.Thread(target=self.sell_action, args=("fteth", pricedf["fteth"], ftamount))
-				thread2 = threading.Thread(target=self.buy_action, args=("ftusdt", pricedf["ftusdt"], ftamount))
-				thread3 = threading.Thread(target=self.sell_action, args=("ethusdt", pricedf["ethusdt"], amount))
-				# self.sell_action("fteth", pricedf["fteth"], ftamount)
-				# self.buy_action("ftusdt", pricedf["ftusdt"], ftamount)
-				# self.sell_action("ethusdt", pricedf["ethusdt"], amount)
-				thread1.start()
-				thread2.start()
-				thread3.start()
+			zipamount = self.trunc(usdtamount/pricedf["zipusdt"], 2)
+
+			thread1 = threading.Thread(target=self.sell_action, args=("zipeth", pricedf["zipeth"], zipamount))
+			thread2 = threading.Thread(target=self.buy_action, args=("zipusdt", pricedf["zipusdt"], zipamount))
+			thread3 = threading.Thread(target=self.sell_action, args=("ethusdt", pricedf["ethusdt"], amount))
+			thread1.start()
+			thread2.start()
+			thread3.start()
 		elif type == 2:
-			ftamount = self.trunc(amount/pricedf["fteth"], 2)
+			zipamount = self.trunc(amount/pricedf["zipeth"], 2)
 			usdtamount = self.trunc(amount*pricedf["ethusdt"], 2)
-			if is_market_order:
-				# 市价单的标的不同
-				order_id1 = self.buy_action("fteth", 0, amount, "market")
-				order_id2 = self.sell_action("ftusdt", 0, ftamount, "market")
-				order_id3 = self.buy_action("ethusdt", 0, usdtamount, "market")
-				if need_calc_slippage:
-					# 统计滑点
-					slippage1 = self.slippage(order_id1, pricedf["fteth"])
-					print("买入 fteth 滑点为{:.3}‰".format(slippage1))
-					slippage2 = self.slippage(order_id2, pricedf["ftusdt"])
-					print("卖出 ftusdt 滑点为{:.3}‰".format(slippage2))
-					slippage3 = self.slippage(order_id3, pricedf["ethusdt"])
-					print("买入 ethusdt 滑点为{:.3}‰".format(slippage3))
-					lprint("总滑点为{:.3}‰ 依次为{:.3}‰ {:.3}‰ {:.3}‰".format(
-						slippage1+slippage2+slippage3, slippage1, slippage2, slippage3))
-			else:
-				thread1 = threading.Thread(target=self.buy_action, args=("fteth", pricedf["fteth"], ftamount))
-				thread2 = threading.Thread(target=self.sell_action, args=("ftusdt", pricedf["ftusdt"], ftamount))
-				thread3 = threading.Thread(target=self.buy_action, args=("ethusdt", pricedf["ethusdt"], amount))
-				# self.buy_action("fteth", pricedf["fteth"], ftamount)
-				# self.sell_action("ftusdt", pricedf["ftusdt"], ftamount)
-				# self.buy_action("ethusdt", pricedf["ethusdt"], amount)
-				thread1.start()
-				thread2.start()
-				thread3.start()
+			
+			thread1 = threading.Thread(target=self.buy_action, args=("zipeth", pricedf["zipeth"], zipamount))
+			thread2 = threading.Thread(target=self.sell_action, args=("zipusdt", pricedf["zipusdt"], zipamount))
+			thread3 = threading.Thread(target=self.buy_action, args=("ethusdt", pricedf["ethusdt"], amount))
+			thread1.start()
+			thread2.start()
+			thread3.start()
 		
 
-	def trade(self):
+	def trade(self, tickers=None):
 		"""套利策略，寻找一个三元pair，看是不是满足套利规则。
-    ETH/USDT, FT/ETH, FT/USDT
-    ethusdt买一价 * fteth买一价 / ftusdt卖一价, 如果大于1很多，就存在套利空间
-    操作流程：usdt买ft，卖ft换回eth，卖eth换回usdt
-    ftusdt买一价 / fteth卖一价 / ethusdt卖一价, 如果大于1很多，就存在套利空间
-    操作流程为：usdt买eth，eht买ft，卖ft换回usdt
+    ETH/USDT, ZIP/ETH, ZIP/USDT
+    ethusdt买一价 * zipeth买一价 / zipusdt卖一价, 如果大于1很多，就存在套利空间
+    操作流程：usdt买zip，卖zip换回eth，卖eth换回usdt
+    zipusdt买一价 / zipeth卖一价 / ethusdt卖一价, 如果大于1很多，就存在套利空间
+    操作流程为：usdt买eth，eht买zip，卖zip换回usdt
     买一下标为2， 卖一下标为4"""
-		time.sleep(second)
+		# time.sleep(second)
 		amount = ethamount
-		self.time_since_last_call += second
-		
-		if len(self.tickers) == len(symbol_pairs):
-			info_df = pd.DataFrame(self.tickers).T
+
+		self_tickers = tickers
+		if tickers == None:
+			self_tickers = self.tickers
+
+		if len(self_tickers) == len(symbol_pairs):
+			info_df = pd.DataFrame(self_tickers).T
 			# 买一卖一的均价
 			info_df["price"] = (info_df[2]+info_df[4])/2
 			
 			taoli1 = info_df.loc["ethusdt", 2] * \
-				info_df.loc["fteth", 2] / info_df.loc["ftusdt", 4]
-			taoli2 = info_df.loc["ftusdt", 2] / \
-				info_df.loc["fteth", 4] / info_df.loc["ethusdt", 4]
+				info_df.loc["zipeth", 2] / info_df.loc["zipusdt", 4]
+			taoli2 = info_df.loc["zipusdt", 2] / \
+				info_df.loc["zipeth", 4] / info_df.loc["ethusdt", 4]
 			
 			if taoli1 > difference:
 				info_df["price"] = info_df[2]
-				info_df.loc["ftusdt", "price"] = info_df.loc["ftusdt", 4]
+				info_df.loc["zipusdt", "price"] = info_df.loc["zipusdt", 4]
 				if is_use_amount:
 					info_df["amount"] = info_df[3]
-					info_df.loc["ftusdt", "amount"] = info_df.loc["ftusdt", 5]
-					ftamount = amount / info_df.price["fteth"]
+					info_df.loc["zipusdt", "amount"] = info_df.loc["zipusdt", 5]
+					zipamount = amount / info_df.price["zipeth"]
 					rates = [info_df.amount["ethusdt"] / amount,
-                                            info_df.amount["ftusdt"] / ftamount, info_df.amount["fteth"] / ftamount]
+                                            info_df.amount["zipusdt"] / zipamount, info_df.amount["zipeth"] / zipamount]
 					if min(rates) * amount < miniamount:
 						lprint('挂单量太小，本次无法套利 方式一', logging.DEBUG)
 						return
@@ -231,24 +166,26 @@ class ArbitrageRobot(object):
 							if amount > maxamount:
 								amount = maxamount
 							lprint("每单金额{}eth，最小利差{:.2}‰".format(amount, (difference-1)*1000))
-				lprint("满足套利条件1 套利值为{:.4}‰".format(taoli1*1000-1000))
-				self.strategy(1, info_df.price, amount)
-				lprint("fteth卖价：{} ftusdt买价：{} ethusdt卖价：{}".format(
-					info_df.price["fteth"], info_df.price["ftusdt"], info_df.price["ethusdt"]))
+				if ticker_queue.empty():
+					lprint("满足套利条件1 套利值为{:.4}‰".format(taoli1*1000-1000))
+					self.strategy(1, info_df.price, amount)
+					lprint("zipeth卖价：{} zipusdt买价：{} ethusdt卖价：{}".format(
+						info_df.price["zipeth"], info_df.price["zipusdt"], info_df.price["ethusdt"]))
+					time.sleep(second)
+				else:
+					lprint("已经收到新的ticker数据，取消本次交易")
 
 			elif taoli2 > difference:
 				info_df["price"] = info_df[4]
-				info_df.loc["ftusdt", "price"] = info_df.loc["ftusdt", 2]
+				info_df.loc["zipusdt", "price"] = info_df.loc["zipusdt", 2]
 				if is_use_amount:
 					info_df["amount"] = info_df[5]
-					info_df.loc["ftusdt", "amount"] = info_df.loc["ftusdt", 3]
-					ftamount = amount / info_df.price["fteth"]
+					info_df.loc["zipusdt", "amount"] = info_df.loc["zipusdt", 3]
+					zipamount = amount / info_df.price["zipeth"]
 					rates = [info_df.amount["ethusdt"] / amount,
-                                            info_df.amount["ftusdt"] / ftamount, info_df.amount["fteth"] / ftamount]
+                                            info_df.amount["zipusdt"] / zipamount, info_df.amount["zipeth"] / zipamount]
 					if min(rates) * amount < miniamount:
 						lprint('挂单量太小，本次无法套利 方式二', logging.DEBUG)
-						# print("{} {}".format(amount, ftamount))
-						# print(info_df.amount)
 						return
 					else:
 						if is_mutable_amount:
@@ -256,33 +193,39 @@ class ArbitrageRobot(object):
 							if amount > maxamount:
 								amount = maxamount
 							lprint("每单金额{}eth，最小利差{:.2}‰".format(amount, (difference-1)*1000))
-				lprint("满足套利条件2 套利值比为{:.4}‰".format(taoli2*1000-1000))
-				self.strategy(2, info_df.price, amount)
-				lprint("fteth买价：{} ftusdt卖价：{} ethusdt买价：{}".format(
-					info_df.price["fteth"], info_df.price["ftusdt"], info_df.price["ethusdt"]))
-				# print(info_df)
+				if ticker_queue.empty():
+					lprint("满足套利条件2 套利值比为{:.4}‰".format(taoli2*1000-1000))
+					self.strategy(2, info_df.price, amount)
+					lprint("zipeth买价：{} zipusdt卖价：{} ethusdt买价：{}".format(
+						info_df.price["zipeth"], info_df.price["zipusdt"], info_df.price["ethusdt"]))
+					time.sleep(second)
+				else:
+					lprint("已经收到新的ticker数据，取消本次交易")
 			else:
 				lprint('差价太小，本次无法套利 方式一{} 方式二{}'.format(taoli1, taoli2), logging.DEBUG)
 
-		if self.time_since_last_call > heartbeat_interval:
+		if time.time() - self.time_last_call > heartbeat_interval:
+			self.time_last_call = time.time()
 			thread1 = threading.Thread(target=self.fcoin.get_server_time)
 			thread2 = threading.Thread(target=self.fcoin.get_server_time)
 			thread3 = threading.Thread(target=self.fcoin.get_server_time)
 			thread1.start()
 			thread2.start()
 			thread3.start()
-
+			
 
 
 	def run(self):
-		self.client = fcoin_client(self.on_close)
-		self.client.start()
-		self.client.subscribe_tickers(symbol_pairs, self.ticker_handler)
 		self.symbols_action()
 		# self.get_balance_action(symbols)
 		balance.balance()
+		self.client = fcoin_client(self.on_close)
+		self.client.start()
+		self.client.subscribe_tickers(symbol_pairs, self.ticker_handler)
 		while True:
-			self.trade()
+			tickers = ticker_queue.get()
+			self.trade(tickers)
+			ticker_queue.queue.clear()
 
 
 	def on_close(self):
