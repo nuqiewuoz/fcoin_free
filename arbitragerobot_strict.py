@@ -55,7 +55,7 @@ class ArbitrageRobot(object):
 			symbol = message['type'].split('.')[1]
 			self.tickers[symbol] = message['ticker']
 			ticker_queue.put(self.tickers, block=False)
-			logging.info("get ticker")
+			logging.debug("get ticker")
 			# logging.info("ticker message: {}".format(message))
 		else :
 			logging.debug("ticker message: {}".format(message))
@@ -98,12 +98,11 @@ class ArbitrageRobot(object):
 
 	def strategy(self, type, pricedf, amount):
 		# 从zipeth开始交易, 因为它成交量最小
-		print('使用套利策略')
+		# print('使用套利策略')
 		self.time_last_call = time.time()
-		amount = self.trunc(amount, 4)
 		if type == 1:
-			usdtamount = self.trunc(amount*pricedf["ethusdt"], 2)
-			zipamount = self.trunc(usdtamount/pricedf["zipusdt"], 2)
+			usdtamount = amount*pricedf["ethusdt"]
+			zipamount = usdtamount/pricedf["zipusdt"]
 
 			thread1 = threading.Thread(target=self.sell_action, args=("zipeth", pricedf["zipeth"], zipamount))
 			thread2 = threading.Thread(target=self.buy_action, args=("zipusdt", pricedf["zipusdt"], zipamount))
@@ -112,8 +111,8 @@ class ArbitrageRobot(object):
 			thread2.start()
 			thread3.start()
 		elif type == 2:
-			zipamount = self.trunc(amount/pricedf["zipeth"], 2)
-			usdtamount = self.trunc(amount*pricedf["ethusdt"], 2)
+			zipamount = amount/pricedf["zipeth"]
+			usdtamount = amount*pricedf["ethusdt"]
 			
 			thread1 = threading.Thread(target=self.buy_action, args=("zipeth", pricedf["zipeth"], zipamount))
 			thread2 = threading.Thread(target=self.sell_action, args=("zipusdt", pricedf["zipusdt"], zipamount))
@@ -167,7 +166,7 @@ class ArbitrageRobot(object):
 								amount = maxamount
 							lprint("每单金额{}eth，最小利差{:.2}‰".format(amount, (difference-1)*1000))
 				# if ticker_queue.empty():
-				lprint("满足套利条件1 套利值为{:.5}‰".format(taoli1))
+				lprint("满足套利条件1 套利值为{:.4}‰".format(taoli1*1000-1000))
 				self.strategy(1, info_df.price, amount)
 				lprint("zipeth卖价：{} zipusdt买价：{} ethusdt卖价：{}".format(
 					info_df.price["zipeth"], info_df.price["zipusdt"], info_df.price["ethusdt"]))
@@ -194,7 +193,7 @@ class ArbitrageRobot(object):
 								amount = maxamount
 							lprint("每单金额{}eth，最小利差{:.2}‰".format(amount, (difference-1)*1000))
 				# if ticker_queue.empty():
-				lprint("满足套利条件2 套利值比为{:.5}‰".format(taoli2))
+				lprint("满足套利条件2 套利值比为{:.4}‰".format(taoli2*1000-1000))
 				self.strategy(2, info_df.price, amount)
 				lprint("zipeth买价：{} zipusdt卖价：{} ethusdt买价：{}".format(
 					info_df.price["zipeth"], info_df.price["zipusdt"], info_df.price["ethusdt"]))
