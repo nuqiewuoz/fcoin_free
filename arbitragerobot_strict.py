@@ -223,7 +223,7 @@ class ArbitrageRobot(object):
 
 if __name__ == '__main__':
 	try:
-		logging.basicConfig(filename=logfile, level=logging.DEBUG,
+		logging.basicConfig(filename=logfile, level=logging.INFO,
                       format='%(asctime)s %(levelname)s %(threadName)s %(message)s')
 		logging.warning("开始套利")
 		lprint("每单金额{}eth，最小利差{:.2}‰".format(_ethamount, (difference-1)*1000))
