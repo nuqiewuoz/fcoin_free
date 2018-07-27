@@ -137,7 +137,7 @@ def simple_calculate(fn=filename1):
     totalnum = len(profits1)+len(profits2)
     print("方式一交易次数{} 总获利{:.2%}".format(len(profits1), total1))
     print("方式二交易次数{} 总获利{:.2%}".format(len(profits2), total2))
-    print("总计套利{:.2%} 平均套利{:.3%}".format(
+    print("总计交易{}次 总计套利{:.2%} 平均套利{:.3%}".format(totalnum,
         total1+total2, (total1+total2)/totalnum))
     totalprofit = 0
     for i in range(len(profits1)):

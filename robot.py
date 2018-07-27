@@ -130,10 +130,10 @@ class Robot(object):
 		real_price_difference = float(low_ask - high_bids)
 		if real_price_difference > price_difference:
 			gap = 0
-			if is_using_gap:
-				gap = price_difference/4
-				if is_mutable_gap:
-					gap = real_price_difference/4
+			if is_mutable_gap:
+				gap = real_price_difference/3
+			elif is_using_gap:
+				gap = price_difference/3
 			# print('现在价格:', newest_price, '挂单价格', order_price)
 
 			lprint('最低卖价: {} 最高买价: {} 当前差价:{:.9f} 买卖差价: {:.9f}'.format(
@@ -180,6 +180,7 @@ class Robot(object):
 		balance.balance()
 		while True:
 			self.trade()
+
 
 	def on_close(self):
 		print("websocket closed, try to restart...")

@@ -64,29 +64,6 @@ def marketorders():
     #     print("市价买入{} {}".format(symbol, amount))
 
 
-    def slippage(self, orderid, price):
-		# 单位是千分之一
-        result = self.fcoin.order_result(orderid)
-        print(result)
-        while result == None or len(result['data']) == 0:
-            print("reconnect...order...")
-            time.sleep(0.1)
-            result = self.fcoin.order_result(orderid)
-        slip = 0
-        amount = 0
-        total = 0
-        for order in result['data']:
-            amount += float(order["filled_amount"])
-            total += float(order["filled_amount"])*float(order["price"])
-        realprice = total/amount
-        print("实际成交均价为{}".format(realprice))
-        if result['data'][0]['type'] == "sell_market":
-            slip = (price-realprice)/price
-        else:
-            slip = (realprice-price)/price
-        return slip*1000
-
-
 if __name__ == '__main__':
     try:
         cancel_all_orders(symbol_pairs)
