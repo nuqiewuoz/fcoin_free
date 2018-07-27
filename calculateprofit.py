@@ -7,21 +7,21 @@ import pandas as pd
 
 
 fcoin = Fcoin(api_key, api_secret)
-symbol_pairs = ['ethusdt', 'ftusdt', 'fteth']
-filename1 = "arbitrage_strict1.log"
+symbol_pairs = ['ethusdt', 'zipusdt', 'zipeth']
+filename1 = "arbitrage_strict.log"
 filename2 = "arbitragerobot.log"
 
 
-
-def lossonbook(symbols):
+def lossonbook(symbols, status="submitted"):
     """ 如果现在所有挂着的单子以市场价成交，会比以挂单价成交亏损的百分比"""
+    print("订单状态:{}".format(status))
     totalloss = 0
     buyorders = {}
     sellorders = {}
     onbuys = {}
     onsells = {}
     for symbol in symbols:
-        orders_info = fcoin.list_orders(symbol=symbol, states="submitted")
+        orders_info = fcoin.list_orders(symbol=symbol, states=status)
         orders = orders_info['data']
         price = fcoin.get_market_price(symbol)
         totalbuy = 0
@@ -33,12 +33,12 @@ def lossonbook(symbols):
             if order['side'] == "buy":
                 loss = (price-orderprice)/orderprice
                 buyorder.append(order)
-                totalbuy += float(order['amount'])
+                totalbuy += float(order['amount']) - float(order['filled_amount'])
                 # print("buy:", loss)
             else:
                 loss = (orderprice-price)/orderprice
                 sellorder.append(order)
-                totalsell += float(order['amount'])
+                totalsell += float(order['amount']) - float(order['filled_amount'])
                 # print("sell:", loss)
             totalloss += loss
         onbuys[symbol] = totalbuy
@@ -107,6 +107,47 @@ def calculate(fn = filename1):
     # print(infodf.describe())
 
 
+def simple_calculate(fn=filename1):
+    profits1 = []
+    profits2 = []
+    bidnums1 = []
+    bidnums2 = []
+    bidnum = 0
+    with open(fn) as f:
+        lines = f.readlines()
+        for line in lines:
+            pattern1 = re.compile(r"^.*套利值为(.+)‰$")
+            pattern2 = re.compile(r"^.*套利值比为(.+)‰$")
+            bidpattern = re.compile(r"^.*每单金额(.+)eth.*$")
+            m1 = pattern1.match(line)
+            m2 = pattern2.match(line)
+            bidm = bidpattern.match(line)
+            if bidm:
+                bidnum = float(bidm.group(1))
+            if m1:
+                profits1.append(float(m1.group(1)))
+                bidnums1.append(bidnum)
+            if m2:
+                profits2.append(float(m2.group(1)))
+                bidnums2.append(bidnum)
+
+    total1 = sum(profits1)/1000
+    total2 = sum(profits2)/1000
+    totalnum = len(profits1)+len(profits2)
+    print("方式一交易次数{} 总获利{:.2%}".format(len(profits1), total1))
+    print("方式二交易次数{} 总获利{:.2%}".format(len(profits2), total2))
+    print("总计套利{:.2%} 平均套利{:.3%}".format(
+        total1+total2, (total1+total2)/totalnum))
+    totalprofit = 0
+    for i in range(len(profits1)):
+        totalprofit += profits1[i]*bidnums1[i]
+    for i in range(len(profits2)):
+        totalprofit += profits2[i]*bidnums2[i]
+    totalprofit /= 1000
+    print("总计交易{}eth 预计获利{}eth".format(
+        sum(bidnums1)+sum(bidnums2), float(totalprofit)))
+
+
 
 def slippage(orderid, price):
     # 单位是千分之一
@@ -130,12 +171,12 @@ def slippage(orderid, price):
 
 
 def report():
-    print("严格的套利方式：")
-    calculate(filename1)
+    # print("严格的套利方式：")
+    simple_calculate(filename1)
     # print("折中的套利方式：")
     # calculate(filename2)
-
     lossonbook(symbol_pairs)
+    lossonbook(symbol_pairs, "partial_filled")
 
 
 
