@@ -14,8 +14,10 @@ import queue
 symbol_pairs = ['ethusdt', 'zipusdt', 'zipeth']
 symbols = ['eth', 'usdt', 'zip']
 _ethamount = 0.01
+_halfeth = _ethamount/2
 # 为了减少计算量，避免单位换算
 _zipamount = 1000	#0.01*100000
+_halfzip = _zipamount/2
 
 difference = 1.0006
 is_use_amount = True
@@ -104,8 +106,8 @@ class ArbitrageRobot(object):
 		# print('使用套利策略')
 		self.time_last_call = time.time()
 		if type == 1:
-			usdtamount = amount*pricedf["ethusdt"]
-			zipamount = usdtamount/pricedf["zipusdt"]
+			# usdtamount = amount*pricedf["ethusdt"]
+			zipamount = amount/pricedf["zipeth"]
 
 			thread1 = threading.Thread(target=self.sell_action, args=("zipeth", pricedf["zipeth"], zipamount))
 			thread2 = threading.Thread(target=self.buy_action, args=("zipusdt", pricedf["zipusdt"], zipamount))
@@ -115,7 +117,7 @@ class ArbitrageRobot(object):
 			thread3.start()
 		elif type == 2:
 			zipamount = amount/pricedf["zipeth"]
-			usdtamount = amount*pricedf["ethusdt"]
+			# usdtamount = amount*pricedf["ethusdt"]
 			
 			thread1 = threading.Thread(target=self.buy_action, args=("zipeth", pricedf["zipeth"], zipamount))
 			thread2 = threading.Thread(target=self.sell_action, args=("zipusdt", pricedf["zipusdt"], zipamount))
@@ -154,7 +156,7 @@ class ArbitrageRobot(object):
 				info_df["price"] = info_df[2]
 				info_df.loc["zipusdt", "price"] = info_df.loc["zipusdt", 4]
 				if is_use_amount:
-					if info_df.loc["ethusdt", 3] < _ethamount/2 or info_df.loc["zipusdt", 5] < _zipamount/2 or info_df.loc["zipeth", 3] < _zipamount/2:
+					if info_df.loc["ethusdt", 3] < _halfeth or info_df.loc["zipusdt", 5] < _halfzip or info_df.loc["zipeth", 3] < _halfzip:
 						lprint('挂单量太小，本次无法套利 方式一', logging.DEBUG)
 						return
 						
@@ -168,7 +170,7 @@ class ArbitrageRobot(object):
 				info_df["price"] = info_df[4]
 				info_df.loc["zipusdt", "price"] = info_df.loc["zipusdt", 2]
 				if is_use_amount:
-					if info_df.loc["ethusdt", 5] < _ethamount/2 or info_df.loc["zipusdt", 3] < _zipamount/2 or info_df.loc["zipeth", 5] < _zipamount/2:
+					if info_df.loc["ethusdt", 5] < _halfeth or info_df.loc["zipusdt", 3] < _halfzip or info_df.loc["zipeth", 5] < _halfzip:
 						lprint('挂单量太小，本次无法套利 方式二', logging.DEBUG)
 						return
 					# else:

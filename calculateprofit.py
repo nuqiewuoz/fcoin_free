@@ -4,6 +4,7 @@ from fcoin import Fcoin
 from auth import api_key, api_secret
 import time
 import pandas as pd
+import balance
 
 
 fcoin = Fcoin(api_key, api_secret)
@@ -178,6 +179,7 @@ def report():
     lossonbook(symbol_pairs)
     lossonbook(symbol_pairs, "partial_filled")
 
+    balance.get_balance_action(['eth', 'usdt', 'zip'])
 
 
 if __name__ == '__main__':
