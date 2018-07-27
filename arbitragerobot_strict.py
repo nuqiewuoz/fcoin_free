@@ -13,14 +13,17 @@ import queue
 
 symbol_pairs = ['ethusdt', 'zipusdt', 'zipeth']
 symbols = ['eth', 'usdt', 'zip']
-ethamount = 0.005
+_ethamount = 0.01
+# 为了减少计算量，避免单位换算
+_zipamount = 1000	#0.01*100000
+
 difference = 1.0006
-is_use_amount = False
+is_use_amount = True
 
 heartbeat_interval = 60
-is_mutable_amount = True
-miniamount = 0.003
-maxamount = 0.01
+# is_mutable_amount = False
+# miniamount = 0.003
+# maxamount = 0.01
 logfile = "arbitrage_strict.log"
 
 ticker_queue = queue.Queue()
@@ -131,7 +134,7 @@ class ArbitrageRobot(object):
     操作流程为：usdt买eth，eht买zip，卖zip换回usdt
     买一下标为2， 卖一下标为4"""
 		# time.sleep(second)
-		amount = ethamount
+		amount = _ethamount
 
 		self_tickers = tickers
 		if tickers == None:
@@ -151,55 +154,37 @@ class ArbitrageRobot(object):
 				info_df["price"] = info_df[2]
 				info_df.loc["zipusdt", "price"] = info_df.loc["zipusdt", 4]
 				if is_use_amount:
-					info_df["amount"] = info_df[3]
-					info_df.loc["zipusdt", "amount"] = info_df.loc["zipusdt", 5]
-					zipamount = amount / info_df.price["zipeth"]
-					rates = [info_df.amount["ethusdt"] / amount,
-                                            info_df.amount["zipusdt"] / zipamount, info_df.amount["zipeth"] / zipamount]
-					if min(rates) * amount < miniamount:
+					amounts = info_df.amount
+					if amounts["ethusdt"] < _ethamount/2 or amounts["zipusdt"] < _zipamount/2 or amounts["zipeth"] < _zipamount/2:
 						lprint('挂单量太小，本次无法套利 方式一', logging.DEBUG)
 						return
-					else:
-						if is_mutable_amount:
-							amount = min(rates) * amount
-							if amount > maxamount:
-								amount = maxamount
-							lprint("每单金额{}eth，最小利差{:.2}‰".format(amount, (difference-1)*1000))
-				# if ticker_queue.empty():
+						
 				lprint("满足套利条件1 套利值为{:.4}‰".format(taoli1*1000-1000))
 				self.strategy(1, info_df.price, amount)
 				lprint("zipeth卖价：{} zipusdt买价：{} ethusdt卖价：{}".format(
 					info_df.price["zipeth"], info_df.price["zipusdt"], info_df.price["ethusdt"]))
 				time.sleep(second)
-				# else:
-				# 	lprint("已经收到新的ticker数据，取消本次交易")
 
 			elif taoli2 > difference:
 				info_df["price"] = info_df[4]
 				info_df.loc["zipusdt", "price"] = info_df.loc["zipusdt", 2]
 				if is_use_amount:
-					info_df["amount"] = info_df[5]
-					info_df.loc["zipusdt", "amount"] = info_df.loc["zipusdt", 3]
-					zipamount = amount / info_df.price["zipeth"]
-					rates = [info_df.amount["ethusdt"] / amount,
-                                            info_df.amount["zipusdt"] / zipamount, info_df.amount["zipeth"] / zipamount]
-					if min(rates) * amount < miniamount:
+					amounts = info_df.amount
+					if amounts["ethusdt"] < _ethamount/2 or amounts["zipusdt"] < _zipamount/2 or amounts["zipeth"] < _zipamount/2:
 						lprint('挂单量太小，本次无法套利 方式二', logging.DEBUG)
 						return
-					else:
-						if is_mutable_amount:
-							amount = min(rates) * amount
-							if amount > maxamount:
-								amount = maxamount
-							lprint("每单金额{}eth，最小利差{:.2}‰".format(amount, (difference-1)*1000))
-				# if ticker_queue.empty():
+					# else:
+					# 	if is_mutable_amount:
+					# 		amount = min(rates) * amount
+					# 		if amount > maxamount:
+					# 			amount = maxamount
+					# 		lprint("每单金额{}eth，最小利差{:.2}‰".format(amount, (difference-1)*1000))
+
 				lprint("满足套利条件2 套利值比为{:.4}‰".format(taoli2*1000-1000))
 				self.strategy(2, info_df.price, amount)
 				lprint("zipeth买价：{} zipusdt卖价：{} ethusdt买价：{}".format(
 					info_df.price["zipeth"], info_df.price["zipusdt"], info_df.price["ethusdt"]))
 				time.sleep(second)
-				# else:
-				# 	lprint("已经收到新的ticker数据，取消本次交易")
 			else:
 				lprint('差价太小，本次无法套利 方式一{} 方式二{}'.format(taoli1, taoli2), logging.DEBUG)
 
@@ -241,7 +226,7 @@ if __name__ == '__main__':
 		logging.basicConfig(filename=logfile, level=logging.INFO,
                       format='%(asctime)s %(levelname)s %(threadName)s %(message)s')
 		logging.warning("开始套利")
-		lprint("每单金额{}eth，最小利差{:.2}‰".format(ethamount, (difference-1)*1000))
+		lprint("每单金额{}eth，最小利差{:.2}‰".format(_ethamount, (difference-1)*1000))
 		robot = ArbitrageRobot()
 		robot.run()
 	except KeyboardInterrupt:
