@@ -154,8 +154,7 @@ class ArbitrageRobot(object):
 				info_df["price"] = info_df[2]
 				info_df.loc["zipusdt", "price"] = info_df.loc["zipusdt", 4]
 				if is_use_amount:
-					amounts = info_df.amount
-					if amounts["ethusdt"] < _ethamount/2 or amounts["zipusdt"] < _zipamount/2 or amounts["zipeth"] < _zipamount/2:
+					if info_df.loc["ethusdt", 3] < _ethamount/2 or info_df.loc["zipusdt", 5] < _zipamount/2 or info_df.loc["zipeth", 3] < _zipamount/2:
 						lprint('挂单量太小，本次无法套利 方式一', logging.DEBUG)
 						return
 						
@@ -169,8 +168,7 @@ class ArbitrageRobot(object):
 				info_df["price"] = info_df[4]
 				info_df.loc["zipusdt", "price"] = info_df.loc["zipusdt", 2]
 				if is_use_amount:
-					amounts = info_df.amount
-					if amounts["ethusdt"] < _ethamount/2 or amounts["zipusdt"] < _zipamount/2 or amounts["zipeth"] < _zipamount/2:
+					if info_df.loc["ethusdt", 5] < _ethamount/2 or info_df.loc["zipusdt", 3] < _zipamount/2 or info_df.loc["zipeth", 5] < _zipamount/2:
 						lprint('挂单量太小，本次无法套利 方式二', logging.DEBUG)
 						return
 					# else:
@@ -223,7 +221,7 @@ class ArbitrageRobot(object):
 
 if __name__ == '__main__':
 	try:
-		logging.basicConfig(filename=logfile, level=logging.INFO,
+		logging.basicConfig(filename=logfile, level=logging.DEBUG,
                       format='%(asctime)s %(levelname)s %(threadName)s %(message)s')
 		logging.warning("开始套利")
 		lprint("每单金额{}eth，最小利差{:.2}‰".format(_ethamount, (difference-1)*1000))
