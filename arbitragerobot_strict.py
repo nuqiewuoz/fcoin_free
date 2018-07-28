@@ -50,8 +50,8 @@ class ArbitrageRobot(object):
 
 	# 截取指定小数位数
 	def trunc(self, f, n):
-		# return round(f, n)
-		return math.floor(f*10**n)/10**n
+		return round(f, n)
+		# return math.floor(f*10**n)/10**n
 
 
 	def ticker_handler(self, message):
@@ -75,11 +75,12 @@ class ArbitrageRobot(object):
 					self.amount_decimals[symbol] = int(info['amount_decimal'])
 					break
 		logging.info("price_decimals: {}".format(self.price_decimals))
+		logging.info("amount_decimals: {}".format(self.amount_decimals))
 
 
 	# 买操作
 	def buy_action(self, this_symbol, this_price, this_amount, type="limit"):
-		this_price = self.trunc(this_price, self.price_decimals[this_symbol])
+		# this_price = self.trunc(this_price, self.price_decimals[this_symbol])
 		this_amount = self.trunc(this_amount, self.amount_decimals[this_symbol])
 		buy_result = self.fcoin.buy(this_symbol, this_price, this_amount, type)
 		# print('buy_result is', buy_result)
@@ -91,7 +92,7 @@ class ArbitrageRobot(object):
 
 	# 卖操作
 	def sell_action(self, this_symbol, this_price, this_amount, type="limit"):
-		this_price = self.trunc(this_price, self.price_decimals[this_symbol])
+		# this_price = self.trunc(this_price, self.price_decimals[this_symbol])
 		this_amount = self.trunc(this_amount, self.amount_decimals[this_symbol])
 		sell_result = self.fcoin.sell(this_symbol, this_price, this_amount, type)
 		# print('sell_result is: ', sell_result)
