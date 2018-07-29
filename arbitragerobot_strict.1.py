@@ -140,7 +140,7 @@ class ArbitrageRobot(object):
                                     "fieth": self_tickers["ethusdt"][2]}
 				if is_use_amount:
 					if self_tickers["ethusdt"][3] < _halfeth or self_tickers["fiusdt"][5] < _halffi or self_tickers["fieth"][3] < _halffi:
-						logging.log('挂单量太小，本次无法套利 方式一', logging.DEBUG)
+						logging.debug('挂单量太小，本次无法套利 方式一')
 						return
 						
 				logging.info("满足套利条件1 套利值为{:.4}‰".format(taoli1*1000-1000))
@@ -155,7 +155,7 @@ class ArbitrageRobot(object):
                                     "fieth": self_tickers["ethusdt"][4]}
 				if is_use_amount:
 					if self_tickers["ethusdt", 5] < _halfeth or self_tickers["fiusdt", 3] < _halffi or self_tickers["fieth", 5] < _halffi:
-						logging.log('挂单量太小，本次无法套利 方式二', logging.DEBUG)
+						logging.debug('挂单量太小，本次无法套利 方式二')
 						return
 
 				logging.info("满足套利条件2 套利值比为{:.4}‰".format(taoli2*1000-1000))
@@ -164,7 +164,8 @@ class ArbitrageRobot(object):
 					printdf["fieth"], printdf["fiusdt"], printdf["ethusdt"]))
 				time.sleep(second)
 			else:
-				logging.log('差价太小，本次无法套利 方式一{} 方式二{}'.format(taoli1, taoli2), logging.DEBUG)
+				logging.debug('差价太小，本次无法套利 方式一{} 方式二{}'.format(taoli1, taoli2))
+				print('差价太小，本次无法套利 方式一{} 方式二{}'.format(taoli1, taoli2))
 
 		if time.time() - self.time_last_call > heartbeat_interval:
 			self.time_last_call = time.time()
@@ -196,7 +197,6 @@ class ArbitrageRobot(object):
 		self.client = fcoin_client(self.on_close)
 		self.client.start()
 		self.client.subscribe_tickers(symbol_pairs, self.ticker_handler)
-
 
 
 if __name__ == '__main__':
