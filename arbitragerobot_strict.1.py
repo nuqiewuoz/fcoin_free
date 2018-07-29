@@ -6,7 +6,6 @@ import os
 import time
 import math
 import logging
-import pandas as pd
 import balance
 import threading
 import queue
@@ -23,17 +22,12 @@ difference = 1.001
 is_use_amount = True
 
 heartbeat_interval = 60
-# is_mutable_amount = False
-# miniamount = 0.003
-# maxamount = 0.01
+is_mutable_amount = True
+miniamount = 0.01
+maxamount = 0.04
 logfile = "arbitrage_strict1.log"
 
 ticker_queue = queue.Queue()
-
-
-def lprint(msg, level=logging.INFO):
-	print(msg)
-	logging.log(level, msg)
 
 
 class ArbitrageRobot(object):
@@ -44,7 +38,6 @@ class ArbitrageRobot(object):
 		self.price_decimals = {}
 		self.amount_decimals = {}
 		self.tickers = {}
-		pd.set_option('precision', 10)
 		self.time_last_call = time.time()
 
 
@@ -55,7 +48,6 @@ class ArbitrageRobot(object):
 
 
 	def ticker_handler(self, message):
-		# print(message)
 		if 'ticker' in message:
 			symbol = message['type'].split('.')[1]
 			self.tickers[symbol] = message['ticker']
@@ -83,10 +75,9 @@ class ArbitrageRobot(object):
 		# this_price = self.trunc(this_price, self.price_decimals[this_symbol])
 		this_amount = self.trunc(this_amount, self.amount_decimals[this_symbol])
 		buy_result = self.fcoin.buy(this_symbol, this_price, this_amount, type)
-		# print('buy_result is', buy_result)
 		buy_order_id = buy_result['data']
 		if buy_order_id:
-			lprint("买单 {} 价格成功委托, 订单ID {}".format(this_price, buy_order_id))
+			logging.info("买单 {} 价格成功委托, 订单ID {}".format(this_price, buy_order_id))
 		return buy_order_id
 
 
@@ -95,19 +86,16 @@ class ArbitrageRobot(object):
 		# this_price = self.trunc(this_price, self.price_decimals[this_symbol])
 		this_amount = self.trunc(this_amount, self.amount_decimals[this_symbol])
 		sell_result = self.fcoin.sell(this_symbol, this_price, this_amount, type)
-		# print('sell_result is: ', sell_result)
 		sell_order_id = sell_result['data']
 		if sell_order_id:
-			lprint("卖单 {} 价格成功委托, 订单ID {}".format(this_price, sell_order_id))
+			logging.info("卖单 {} 价格成功委托, 订单ID {}".format(this_price, sell_order_id))
 		return sell_order_id
 
 
 	def strategy(self, type, pricedf, amount):
 		# 从fieth开始交易, 因为它成交量最小
-		# print('使用套利策略')
 		self.time_last_call = time.time()
 		if type == 1:
-			# usdtamount = amount*pricedf["ethusdt"]
 			fiamount = amount/pricedf["fieth"]
 
 			thread1 = threading.Thread(target=self.sell_action, args=("fieth", pricedf["fieth"], fiamount))
@@ -118,7 +106,6 @@ class ArbitrageRobot(object):
 			thread3.start()
 		elif type == 2:
 			fiamount = amount/pricedf["fieth"]
-			# usdtamount = amount*pricedf["ethusdt"]
 			
 			thread1 = threading.Thread(target=self.buy_action, args=("fieth", pricedf["fieth"], fiamount))
 			thread2 = threading.Thread(target=self.sell_action, args=("fiusdt", pricedf["fiusdt"], fiamount))
@@ -140,54 +127,44 @@ class ArbitrageRobot(object):
 		amount = _ethamount
 
 		self_tickers = tickers
-		if tickers == None:
-			self_tickers = self.tickers
 
 		if len(self_tickers) == len(symbol_pairs):
-			info_df = pd.DataFrame(self_tickers).T
-			# 买一卖一的均价
-			info_df["price"] = (info_df[2]+info_df[4])/2
-			
-			taoli1 = info_df.loc["ethusdt", 2] * \
-				info_df.loc["fieth", 2] / info_df.loc["fiusdt", 4]
-			taoli2 = info_df.loc["fiusdt", 2] / \
-				info_df.loc["fieth", 4] / info_df.loc["ethusdt", 4]
+			taoli1 = self_tickers["ethusdt"][2] * \
+				self_tickers["fieth"][2] / self_tickers["fiusdt"][4]
+			taoli2 = self_tickers["fiusdt"][2] / \
+				self_tickers["fieth"][4] / self_tickers["ethusdt"][4]
 			
 			if taoli1 > difference:
-				info_df["price"] = info_df[2]
-				info_df.loc["fiusdt", "price"] = info_df.loc["fiusdt", 4]
+				printdf = {"ethusdt": self_tickers["ethusdt"][2],
+                                    "fiusdt": self_tickers["ethusdt"][4],
+                                    "fieth": self_tickers["ethusdt"][2]}
 				if is_use_amount:
-					if info_df.loc["ethusdt", 3] < _halfeth or info_df.loc["fiusdt", 5] < _halffi or info_df.loc["fieth", 3] < _halffi:
-						lprint('挂单量太小，本次无法套利 方式一', logging.DEBUG)
+					if self_tickers["ethusdt"][3] < _halfeth or self_tickers["fiusdt"][5] < _halffi or self_tickers["fieth"][3] < _halffi:
+						logging.log('挂单量太小，本次无法套利 方式一', logging.DEBUG)
 						return
 						
-				lprint("满足套利条件1 套利值为{:.4}‰".format(taoli1*1000-1000))
-				self.strategy(1, info_df.price, amount)
-				lprint("fieth卖价：{} fiusdt买价：{} ethusdt卖价：{}".format(
-					info_df.price["fieth"], info_df.price["fiusdt"], info_df.price["ethusdt"]))
+				logging.info("满足套利条件1 套利值为{:.4}‰".format(taoli1*1000-1000))
+				self.strategy(1, printdf, amount)
+				logging.info("fieth卖价：{} fiusdt买价：{} ethusdt卖价：{}".format(
+					printdf["fieth"], printdf["fiusdt"], printdf["ethusdt"]))
 				time.sleep(second)
 
 			elif taoli2 > difference:
-				info_df["price"] = info_df[4]
-				info_df.loc["fiusdt", "price"] = info_df.loc["fiusdt", 2]
+				printdf = {"ethusdt": self_tickers["ethusdt"][4],
+                                    "fiusdt": self_tickers["ethusdt"][2],
+                                    "fieth": self_tickers["ethusdt"][4]}
 				if is_use_amount:
-					if info_df.loc["ethusdt", 5] < _halfeth or info_df.loc["fiusdt", 3] < _halffi or info_df.loc["fieth", 5] < _halffi:
-						lprint('挂单量太小，本次无法套利 方式二', logging.DEBUG)
+					if self_tickers["ethusdt", 5] < _halfeth or self_tickers["fiusdt", 3] < _halffi or self_tickers["fieth", 5] < _halffi:
+						logging.log('挂单量太小，本次无法套利 方式二', logging.DEBUG)
 						return
-					# else:
-					# 	if is_mutable_amount:
-					# 		amount = min(rates) * amount
-					# 		if amount > maxamount:
-					# 			amount = maxamount
-					# 		lprint("每单金额{}eth，最小利差{:.2}‰".format(amount, (difference-1)*1000))
 
-				lprint("满足套利条件2 套利值比为{:.4}‰".format(taoli2*1000-1000))
-				self.strategy(2, info_df.price, amount)
-				lprint("fieth买价：{} fiusdt卖价：{} ethusdt买价：{}".format(
-					info_df.price["fieth"], info_df.price["fiusdt"], info_df.price["ethusdt"]))
+				logging.info("满足套利条件2 套利值比为{:.4}‰".format(taoli2*1000-1000))
+				self.strategy(2, printdf, amount)
+				logging.info("fieth买价：{} fiusdt卖价：{} ethusdt买价：{}".format(
+					printdf["fieth"], printdf["fiusdt"], printdf["ethusdt"]))
 				time.sleep(second)
 			else:
-				lprint('差价太小，本次无法套利 方式一{} 方式二{}'.format(taoli1, taoli2), logging.DEBUG)
+				logging.log('差价太小，本次无法套利 方式一{} 方式二{}'.format(taoli1, taoli2), logging.DEBUG)
 
 		if time.time() - self.time_last_call > heartbeat_interval:
 			self.time_last_call = time.time()
@@ -224,10 +201,10 @@ class ArbitrageRobot(object):
 
 if __name__ == '__main__':
 	try:
-		logging.basicConfig(filename=logfile, level=logging.INFO,
+		logging.basicConfig(filename=logfile, level=logging.DEBUG,
                       format='%(asctime)s %(levelname)s %(threadName)s %(message)s')
 		logging.warning("开始套利")
-		lprint("每单金额{}eth，最小利差{:.2}‰".format(_ethamount, (difference-1)*1000))
+		logging.info("每单金额{}eth，最小利差{:.2}‰".format(_ethamount, (difference-1)*1000))
 		robot = ArbitrageRobot()
 		robot.run()
 	except KeyboardInterrupt:
