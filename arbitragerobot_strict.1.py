@@ -18,13 +18,13 @@ _halfeth = _ethamount/2
 _fiamount = 50	#0.01*5000
 _halffi = _fiamount/2
 
-difference = 1.0001
+difference = 1.001
 is_use_amount = True
 
 heartbeat_interval = 60
-is_mutable_amount = True
-miniamount = 0.01
-maxamount = 0.04
+# is_mutable_amount = True
+# miniamount = 0.01
+# maxamount = 0.04
 logfile = "arbitrage_strict1.log"
 
 ticker_queue = queue.Queue()
@@ -200,7 +200,7 @@ class ArbitrageRobot(object):
 
 if __name__ == '__main__':
 	try:
-		logging.basicConfig(filename=logfile, level=logging.DEBUG,
+		logging.basicConfig(filename=logfile, level=logging.INFO,
                       format='%(asctime)s %(levelname)s %(threadName)s %(message)s')
 		logging.warning("开始套利")
 		logging.info("每单金额{}eth，最小利差{:.2}‰".format(_ethamount, (difference-1)*1000))
