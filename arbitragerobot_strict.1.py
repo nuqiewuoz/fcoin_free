@@ -18,7 +18,7 @@ _halfeth = _ethamount/2
 _fiamount = 50	#0.01*5000
 _halffi = _fiamount/2
 
-difference = 1.001
+difference = 1.0001
 is_use_amount = True
 
 heartbeat_interval = 60
@@ -154,7 +154,7 @@ class ArbitrageRobot(object):
                                     "fiusdt": self_tickers["fiusdt"][2],
                                     "fieth": self_tickers["fieth"][4]}
 				if is_use_amount:
-					if self_tickers["ethusdt", 5] < _halfeth or self_tickers["fiusdt", 3] < _halffi or self_tickers["fieth", 5] < _halffi:
+					if self_tickers["ethusdt"][5] < _halfeth or self_tickers["fiusdt"][3] < _halffi or self_tickers["fieth"][5] < _halffi:
 						logging.debug('挂单量太小，本次无法套利 方式二')
 						return
 
@@ -165,7 +165,7 @@ class ArbitrageRobot(object):
 				time.sleep(second)
 			else:
 				logging.debug('差价太小，本次无法套利 方式一{} 方式二{}'.format(taoli1, taoli2))
-				print('差价太小，本次无法套利 方式一{} 方式二{}'.format(taoli1, taoli2))
+				# print('差价太小，本次无法套利 方式一{} 方式二{}'.format(taoli1, taoli2))
 
 		if time.time() - self.time_last_call > heartbeat_interval:
 			self.time_last_call = time.time()
@@ -176,7 +176,6 @@ class ArbitrageRobot(object):
 			thread2.start()
 			thread3.start()
 			
-
 
 	def run(self):
 		self.symbols_action()
