@@ -136,8 +136,8 @@ class ArbitrageRobot(object):
 			
 			if taoli1 > difference:
 				printdf = {"ethusdt": self_tickers["ethusdt"][2],
-                                    "fiusdt": self_tickers["ethusdt"][4],
-                                    "fieth": self_tickers["ethusdt"][2]}
+                                    "fiusdt": self_tickers["fiusdt"][4],
+                                    "fieth": self_tickers["fieth"][2]}
 				if is_use_amount:
 					if self_tickers["ethusdt"][3] < _halfeth or self_tickers["fiusdt"][5] < _halffi or self_tickers["fieth"][3] < _halffi:
 						logging.debug('挂单量太小，本次无法套利 方式一')
@@ -151,8 +151,8 @@ class ArbitrageRobot(object):
 
 			elif taoli2 > difference:
 				printdf = {"ethusdt": self_tickers["ethusdt"][4],
-                                    "fiusdt": self_tickers["ethusdt"][2],
-                                    "fieth": self_tickers["ethusdt"][4]}
+                                    "fiusdt": self_tickers["fiusdt"][2],
+                                    "fieth": self_tickers["fieth"][4]}
 				if is_use_amount:
 					if self_tickers["ethusdt", 5] < _halfeth or self_tickers["fiusdt", 3] < _halffi or self_tickers["fieth", 5] < _halffi:
 						logging.debug('挂单量太小，本次无法套利 方式二')
