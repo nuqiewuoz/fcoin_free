@@ -16,7 +16,7 @@ second = 0.3
 fees_start_time = {
 	'year': 2018,
 	'month': 7,
-	'day': 29,
+	'day': 30,
 	'hour': 0,
 	'minute': 0,
 	'second': 0

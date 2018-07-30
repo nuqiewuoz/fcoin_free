@@ -5,12 +5,11 @@ from auth import api_key, api_secret
 import time
 import pandas as pd
 import balance
+import sys
 
 
 fcoin = Fcoin(api_key, api_secret)
-symbol_pairs = ['ethusdt', 'zipusdt', 'zipeth']
 filename1 = "arbitrage_strict.log"
-filename2 = "arbitragerobot.log"
 
 
 def lossonbook(symbols, status="submitted"):
@@ -108,7 +107,7 @@ def calculate(fn = filename1):
     # print(infodf.describe())
 
 
-def simple_calculate(fn=filename1):
+def simple_calculate(fn):
     profits1 = []
     profits2 = []
     bidnums1 = []
@@ -170,20 +169,32 @@ def slippage(orderid, price):
     return slip*1000
 
 
-
-def report():
-    # print("严格的套利方式：")
-    simple_calculate(filename1)
-    # print("折中的套利方式：")
-    # calculate(filename2)
+def report(filename, symbols=None):
+    if filename:
+        simple_calculate(filename)
+    symbol_list = symbols
+    if symbol_list == None:
+        # 根据文件名生成货币对，例如ft_eth_usdt_XXXX.log
+        # 就能得到[ft,eth,usdt]和[fteth, ftusdt, ethusdt]
+        splits = filename.split("_")
+        if len(splits) > 1:
+            symbol_list = splits[:-1]
+        else:
+            symbol_list = ['ft', 'eth', 'usdt']
+    num = len(symbol_list)
+    symbol_pairs=[symbol_list[i]+symbol_list[j] for i in range(num-1) for j in range(i+1, num)]
+    print(symbol_pairs)
     lossonbook(symbol_pairs)
     lossonbook(symbol_pairs, "partial_filled")
 
-    balance.get_balance_action(['eth', 'usdt', 'zip'])
+    balance.get_balance_action(symbol_list)
 
 
 if __name__ == '__main__':
     try:
-        report()
+        filename = filename1
+        if len(sys.argv) == 2:
+            filename = sys.argv[1]
+        report(filename)
     except KeyboardInterrupt:
         os._exit(1)
