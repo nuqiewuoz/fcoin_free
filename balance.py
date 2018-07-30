@@ -51,8 +51,8 @@ def total_balance_as_token(symbol, balances):
                 print("not found symbols for {} and {}".format(
                     balance_symbol, symbol))
                 return
-    print("账户总价值", total, symbol)
-    logging.info("账户总价值{} {}".format(total, symbol))
+    print("指定货币总价值", total, symbol)
+    logging.info("指定货币总价值{} {}".format(total, symbol))
 
 
 def total_balance():
@@ -116,19 +116,21 @@ def total_balance():
     logging.info("账户总价值{} ft".format(total/ftprice))
 
 
-def balance(all=False):
+def balance(symbols=None):
     # 账户余额
-    if all:
+    if symbols == None:
+        symbols = symbol_type
+
+    if symbols == 'all':
         total_balance()
     else:
-        balances = get_balance_action(symbol_type)
-        total_balance_as_token("usdt", balances)
-        total_balance_as_token("eth", balances)
-        total_balance_as_token("ft", balances)
+        balances = get_balance_action(symbols)
+        for symbol in symbols:
+            total_balance_as_token(symbol, balances)
 
 
 # 守护进程
 if __name__ == '__main__':
     # logging.basicConfig(level=logging.DEBUG)
     print(time.ctime())
-    balance(False)
+    balance()
