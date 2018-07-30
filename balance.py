@@ -104,7 +104,7 @@ def total_balance():
                     break
             else:
                 print("invalid symbol {}".format(balance_symbol))
-                return
+                # return
     ethprice = fcoin.get_market_price('ethusdt')
     ftprice = fcoin.get_market_price('ftusdt')
     total = totalusdt + totaleth * ethprice + totalft * ftprice

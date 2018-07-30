@@ -10,5 +10,5 @@ halfs1 = _s1amount/2
 halfs2 = _s2amount/2
 
 # 套利比例，1.001意味着1‰
-difference = 1.0006
+difference = 1.001
 is_use_amount = False
