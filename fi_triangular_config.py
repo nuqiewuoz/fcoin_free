@@ -1,4 +1,4 @@
-sleepsecond = 0.3  # 每单结束后的休息时间
+sleepsecond = 0.5  # 每单结束后的休息时间
 s1 = 'fi'
 s2 = 'eth'
 s3 = 'usdt'
