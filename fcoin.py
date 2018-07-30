@@ -123,15 +123,15 @@ class Fcoin():
 
     def get_server_time(self):
         """Get server time"""
-        return self.public_request('GET','/public/server-time')['data']
+        return self.public_request('GET','public/server-time')['data']
 
     def get_currencies(self):
         """get all currencies"""
-        return self.public_request('GET', '/public/currencies')['data']
+        return self.public_request('GET', 'public/currencies')['data']
 
     def get_symbols(self):
         """get all symbols"""
-        return self.public_request('GET', '/public/symbols')['data']
+        return self.public_request('GET', 'public/symbols')['data']
 
     def get_trades(self,symbol):
         """get detail trade"""
