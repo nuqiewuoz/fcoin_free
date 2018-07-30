@@ -96,7 +96,7 @@ class Fcoin():
             'FC-ACCESS-TIMESTAMP': timestamp
         }
         
-        print(method, full_url, payload)
+        # print(method, full_url, payload)
         # logging.debug("{} {} {}".format(method, full_url, payload))
         try:
             r = self.session.request(

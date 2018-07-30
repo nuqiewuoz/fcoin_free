@@ -16,6 +16,33 @@ def lprint(msg, level=logging.INFO):
     logging.log(level, msg)
 
 
+def test_404(repeat=20):
+    url1 = 'https://api.fcoin.com/404'
+    url2 = 'https://api.fcoin.com/v2/404'
+
+    with requests.Session() as s:
+        # call url once to complete 3 hand shakes.
+        s.get(url1)
+        beginat = time.time()
+        lprint('begin network connect test:{}'.format(url1), logging.DEBUG)
+        for i in range(repeat):
+            r = s.get(url1)
+        endat = time.time()
+        lprint('total time:{:.5}s avg time:{:.4}ms'.format(
+            endat-beginat, (endat-beginat)/repeat*1000))
+
+        s.get(url2)
+        beginat2 = time.time()
+        lprint('begin network connect test2:{}'.format(url2), logging.DEBUG)
+        for i in range(repeat):
+            r = s.get(url2)
+        endat2 = time.time()
+        lprint('total time:{:.5}s avg time:{:.4}ms'.format(
+            endat2-beginat2, (endat2-beginat2)/repeat*1000))
+    # 返回本地和服务器的时间差, 单位毫秒
+    return (endat-beginat)/repeat*1000
+
+
 def test_network(repeat=20, api=None):
     base_url = 'https://api.fcoin.com/v2'
     api_url = '/public/server-time'
@@ -84,6 +111,7 @@ def test_create_order(repeat=10):
 if __name__ == '__main__':
     try:
         setlog()
-        test_create_order()
+        # test_create_order()
+        test_404(100)
     except KeyboardInterrupt:
         os._exit(1)
