@@ -176,6 +176,9 @@ class ArbitrageRobot(object):
 			else:
 				logging.debug('差价太小，本次无法套利 方式一{} 方式二{}'.format(taoli1, taoli2))
 				print('差价太小，本次无法套利 方式一{} 方式二{}'.format(taoli1, taoli2))
+		else:
+			time.sleep(sleepsecond)
+			return
 
 		if time.time() - self.time_last_call > heartbeat_interval:
 			self.time_last_call = time.time()
